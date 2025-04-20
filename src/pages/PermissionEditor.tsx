@@ -5,9 +5,9 @@ import { TooltipProvider } from "../components/ui/tooltip";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
-import { MenuTable, PermissionGroup, PermissionChild, PermissionActionWithResources, ApiResource } from "../components/MenuTable";
+import { MenuTable, PermissionGroup, PermissionChild, PermissionAction, ApiResource } from "../components/MenuTable";
 
-type PermissionGroupWithChildren = PermissionGroup & { children?: PermissionChild[]; actions?: PermissionActionWithResources[] };
+type PermissionGroupWithChildren = PermissionGroup & { children?: PermissionChild[]; actions?: PermissionAction[] };
 
 const dummyApiRoutes: ApiResource[] = [
   { method: "GET", path: "/api/v1/roles" },
@@ -239,7 +239,7 @@ const PermissionEditor = () => {
       return String(value);
     }
 
-    function filterActions(actions: PermissionActionWithResources[], slug: string) {
+    function filterActions(actions: PermissionAction[], slug: string) {
       return actions.filter((a) => selectedActions.has(`${slug}:${a.code}`));
     }
 
@@ -402,7 +402,7 @@ const PermissionEditor = () => {
             toast({ title: "Validation error", description: "Action code already exists in group" });
             return group;
           }
-          const newAction: PermissionActionWithResources = {
+          const newAction: PermissionAction = {
             code: newActionCode.trim(),
             name: newActionName.trim(),
             resources: selectedApiResourcesForNewAction,
@@ -420,7 +420,7 @@ const PermissionEditor = () => {
                 toast({ title: "Validation error", description: "Action code already exists in child" });
                 return child;
               }
-              const newAction: PermissionActionWithResources = {
+              const newAction: PermissionAction = {
                 code: newActionCode.trim(),
                 name: newActionName.trim(),
                 resources: selectedApiResourcesForNewAction,
