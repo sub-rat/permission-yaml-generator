@@ -1,5 +1,6 @@
 
-// Using your previous code as base with adjusted types to fix errors only on the relevant parts.
+// Fix PermissionEditor.tsx so PermissionGroupWithChildren type does not define 'router' on group, only on children
+// Also fix imports to use proper named imports (TooltipProvider).
 
 import React, { useState, useCallback } from "react";
 import { PermissionGroupComponent } from "../components/PermissionGroup";
@@ -20,28 +21,25 @@ type PermissionActionWithResources = {
   resources: ApiResource[];
 };
 
-// Separate PermissionChildWithRouter type includes router and component keys
 type PermissionChildWithRouter = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home";
-  router: string; // added router and component properties for children with routing
+  icon: "CreditCard" | "LightningCharge" | "Home";
+  router: string;
   component: string;
   sequence: number;
   actions: PermissionActionWithResources[];
 };
 
-// PermissionGroupWithChildren updated: children are of type PermissionChildWithRouter[]
 type PermissionGroupWithChildren = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home";
+  icon: "CreditCard" | "LightningCharge" | "Home";
   sequence: number;
   children?: PermissionChildWithRouter[];
   actions?: PermissionActionWithResources[];
 };
 
-// initialData adjusted to PermissionGroupWithChildren type, children have router/component keys as required by PermissionChildWithRouter
 const initialData: PermissionGroupWithChildren[] = [
   {
     name: "USERS",
@@ -52,7 +50,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Admin",
         slug: "admin",
-        icon: "Lightning",
+        icon: "LightningCharge",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2101,
@@ -99,7 +97,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Teacher",
         slug: "teacher",
-        icon: "Lightning",
+        icon: "LightningCharge",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2102,
@@ -296,11 +294,9 @@ const PermissionEditor = () => {
             icon: c.icon,
             sequence: c.sequence,
             actions:
-              c.actions &&
-              filterActions(c.actions, c.slug).length > 0
+              c.actions && filterActions(c.actions, c.slug).length > 0
                 ? filterActions(c.actions, c.slug)
                 : undefined,
-            // We omit router/component because they are not needed in the YAML output
             children: undefined,
           }))
           .filter((c) => c.actions || c.children);

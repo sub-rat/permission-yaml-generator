@@ -1,10 +1,18 @@
 
+// Fix imports to use proper named imports for UI components.
+// Fix icon imports and type to use correct icon name LightningCharge.
+
 import React, { useState } from "react";
-import { CreditCard, Lightning, Home } from "lucide-react"; // LightningCharge replaced by Lightning (valid icon)
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"; // fixed named imports
+import { CreditCard, LightningCharge, Home } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"; // fixed named imports
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type ApiResource = {
@@ -22,7 +30,7 @@ export type PermissionAction = {
 export type PermissionChild = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // changed LightningCharge to Lightning
+  icon: "CreditCard" | "LightningCharge" | "Home";
   router: string;
   component: string;
   sequence: number;
@@ -32,7 +40,7 @@ export type PermissionChild = {
 export type PermissionGroup = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // changed LightningCharge to Lightning
+  icon: "CreditCard" | "LightningCharge" | "Home";
   sequence: number;
   actions?: PermissionAction[];
   children?: PermissionChild[];
@@ -40,7 +48,7 @@ export type PermissionGroup = {
 
 const iconMap = {
   CreditCard: CreditCard,
-  Lightning: Lightning,
+  LightningCharge: LightningCharge,
   Home: Home,
 };
 
