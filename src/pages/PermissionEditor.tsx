@@ -1,4 +1,6 @@
 
+// Using your previous code as base with adjusted types to fix errors only on the relevant parts.
+
 import React, { useState, useCallback } from "react";
 import { PermissionGroupComponent } from "../components/PermissionGroup";
 import { useApiRoutes } from "../hooks/useApiRoutes";
@@ -18,15 +20,28 @@ type PermissionActionWithResources = {
   resources: ApiResource[];
 };
 
+// Separate PermissionChildWithRouter type includes router and component keys
+type PermissionChildWithRouter = {
+  name: string;
+  slug: string;
+  icon: "CreditCard" | "Lightning" | "Home";
+  router: string; // added router and component properties for children with routing
+  component: string;
+  sequence: number;
+  actions: PermissionActionWithResources[];
+};
+
+// PermissionGroupWithChildren updated: children are of type PermissionChildWithRouter[]
 type PermissionGroupWithChildren = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home";
   sequence: number;
-  children?: PermissionGroupWithChildren[];
+  children?: PermissionChildWithRouter[];
   actions?: PermissionActionWithResources[];
 };
 
+// initialData adjusted to PermissionGroupWithChildren type, children have router/component keys as required by PermissionChildWithRouter
 const initialData: PermissionGroupWithChildren[] = [
   {
     name: "USERS",
@@ -37,7 +52,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Admin",
         slug: "admin",
-        icon: "LightningCharge",
+        icon: "Lightning",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2101,
@@ -84,7 +99,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Teacher",
         slug: "teacher",
-        icon: "LightningCharge",
+        icon: "Lightning",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2102,
@@ -164,7 +179,9 @@ const initialData: PermissionGroupWithChildren[] = [
           {
             code: "query-own",
             name: "QUERY OWN",
-            resources: [{ method: "GET", path: "/api/v1/students", attribute: "OWN" }],
+            resources: [
+              { method: "GET", path: "/api/v1/students", attribute: "OWN" },
+            ],
           },
           {
             code: "disable",
@@ -187,7 +204,8 @@ const PermissionEditor = () => {
 
   const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
 
-  const [permissions, setPermissions] = useState<PermissionGroupWithChildren[]>(initialData);
+  const [permissions, setPermissions] =
+    useState<PermissionGroupWithChildren[]>(initialData);
 
   const toggleAction = useCallback(
     (groupSlug: string, actionCode: string, enabled: boolean) => {
@@ -217,7 +235,10 @@ const PermissionEditor = () => {
       const space = "  ".repeat(indent);
       if (typeof value === "string") {
         if (value.includes("\n")) {
-          return `|-\n${"  ".repeat(indent + 1)}${value.replace(/\n/g, "\n" + "  ".repeat(indent + 1))}`;
+          return `|-\n${"  ".repeat(indent + 1)}${value.replace(
+            /\n/g,
+            "\n" + "  ".repeat(indent + 1)
+          )}`;
         } else {
           return `"${value}"`;
         }
@@ -241,7 +262,10 @@ const PermissionEditor = () => {
       return String(value);
     }
 
-    function filterActions(actions: PermissionActionWithResources[], slug: string) {
+    function filterActions(
+      actions: PermissionActionWithResources[],
+      slug: string
+    ) {
       return actions.filter((a) => selectedActions.has(`${slug}:${a.code}`));
     }
 
@@ -266,8 +290,21 @@ const PermissionEditor = () => {
 
       if (group.children && group.children.length > 0) {
         const filteredChildren = group.children
-          .map((c) => processGroup(c))
+          .map((c) => ({
+            name: c.name,
+            slug: c.slug,
+            icon: c.icon,
+            sequence: c.sequence,
+            actions:
+              c.actions &&
+              filterActions(c.actions, c.slug).length > 0
+                ? filterActions(c.actions, c.slug)
+                : undefined,
+            // We omit router/component because they are not needed in the YAML output
+            children: undefined,
+          }))
           .filter((c) => c.actions || c.children);
+
         if (filteredChildren.length > 0) {
           result.children = filteredChildren;
         }
@@ -316,8 +353,7 @@ const PermissionEditor = () => {
                     {apiRoutes.map(({ method, path }) => (
                       <li key={`${method}-${path}`} className="mb-0.5">
                         <code>
-                          <span className="font-semibold">{method}</span>{" "}
-                          {path}
+                          <span className="font-semibold">{method}</span> {path}
                         </code>
                       </li>
                     ))}
@@ -344,3 +380,4 @@ const PermissionEditor = () => {
 };
 
 export default PermissionEditor;
+

@@ -1,16 +1,10 @@
 
 import React, { useState } from "react";
-import { CreditCard, LightningCharge, Home } from "lucide-react"; // corrected icons
-import Card from "./ui/card";
-import CardHeader from "./ui/card";
-import CardTitle from "./ui/card";
-import CardContent from "./ui/card";
-import Button from "./ui/button";
-import Checkbox from "./ui/checkbox";
-import Tooltip from "./ui/tooltip";
-import TooltipContent from "./ui/tooltip";
-import TooltipProvider from "./ui/tooltip";
-import TooltipTrigger from "./ui/tooltip";
+import { CreditCard, Lightning, Home } from "lucide-react"; // LightningCharge replaced by Lightning (valid icon)
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"; // fixed named imports
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"; // fixed named imports
 import { cn } from "@/lib/utils";
 
 export type ApiResource = {
@@ -28,7 +22,7 @@ export type PermissionAction = {
 export type PermissionChild = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // changed LightningCharge to Lightning
   router: string;
   component: string;
   sequence: number;
@@ -38,7 +32,7 @@ export type PermissionChild = {
 export type PermissionGroup = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // changed LightningCharge to Lightning
   sequence: number;
   actions?: PermissionAction[];
   children?: PermissionChild[];
@@ -46,7 +40,7 @@ export type PermissionGroup = {
 
 const iconMap = {
   CreditCard: CreditCard,
-  LightningCharge: LightningCharge,
+  Lightning: Lightning,
   Home: Home,
 };
 
@@ -127,13 +121,9 @@ export function PermissionGroupComponent({
       >
         <div className="flex items-center gap-2">
           <IconComponent className="h-5 w-5 text-primary-foreground" />
-          <CardTitle className="font-semibold text-lg">
-            {group.name}
-          </CardTitle>
+          <CardTitle className="font-semibold text-lg">{group.name}</CardTitle>
           {isChild && (
-            <span className="text-sm text-muted-foreground">
-              ({group.slug})
-            </span>
+            <span className="text-sm text-muted-foreground">({group.slug})</span>
           )}
         </div>
         <Button
@@ -166,21 +156,19 @@ export function PermissionGroupComponent({
               </div>
             </div>
           )}
-          {"children" in group &&
-            group.children &&
-            group.children.length > 0 && (
-              <div className="ml-6">
-                {group.children.map((child) => (
-                  <PermissionGroupComponent
-                    key={child.slug}
-                    group={child}
-                    level={level + 1}
-                    onToggleAction={onToggleAction}
-                    selectedActions={selectedActions}
-                  />
-                ))}
-              </div>
-            )}
+          {"children" in group && group.children && group.children.length > 0 && (
+            <div className="ml-6">
+              {group.children.map((child) => (
+                <PermissionGroupComponent
+                  key={child.slug}
+                  group={child}
+                  level={level + 1}
+                  onToggleAction={onToggleAction}
+                  selectedActions={selectedActions}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       )}
     </Card>
