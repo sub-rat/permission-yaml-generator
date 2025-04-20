@@ -1,18 +1,16 @@
 
 import React, { useState } from "react";
-import { CreditCard, Lightning, HouseLine } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  Button,
-  Checkbox,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui";
+import { CreditCard, LightningCharge, Home } from "lucide-react"; // corrected icons
+import Card from "./ui/card";
+import CardHeader from "./ui/card";
+import CardTitle from "./ui/card";
+import CardContent from "./ui/card";
+import Button from "./ui/button";
+import Checkbox from "./ui/checkbox";
+import Tooltip from "./ui/tooltip";
+import TooltipContent from "./ui/tooltip";
+import TooltipProvider from "./ui/tooltip";
+import TooltipTrigger from "./ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type ApiResource = {
@@ -30,7 +28,7 @@ export type PermissionAction = {
 export type PermissionChild = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "HouseLine";
+  icon: "CreditCard" | "LightningCharge" | "Home";
   router: string;
   component: string;
   sequence: number;
@@ -40,7 +38,7 @@ export type PermissionChild = {
 export type PermissionGroup = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "HouseLine";
+  icon: "CreditCard" | "LightningCharge" | "Home";
   sequence: number;
   actions?: PermissionAction[];
   children?: PermissionChild[];
@@ -48,8 +46,8 @@ export type PermissionGroup = {
 
 const iconMap = {
   CreditCard: CreditCard,
-  Lightning: Lightning,
-  HouseLine: HouseLine,
+  LightningCharge: LightningCharge,
+  Home: Home,
 };
 
 interface PermissionGroupProps {
@@ -119,7 +117,7 @@ export function PermissionGroupComponent({
   const IconComponent = iconMap[group.icon] ?? CreditCard;
   const [expanded, setExpanded] = useState(level === 0);
 
-  const isChild = "router" in group; // distinguish child from root group
+  const isChild = "router" in group;
 
   return (
     <Card className={cn("mb-4 border")}>
@@ -188,3 +186,4 @@ export function PermissionGroupComponent({
     </Card>
   );
 }
+

@@ -1,38 +1,10 @@
 
 import React, { useState, useCallback } from "react";
-import {
-  PermissionGroupComponent,
-  PermissionGroup,
-  PermissionAction,
-  PermissionChild,
-} from "@/components/PermissionGroup";
-import { useApiRoutes } from "@/hooks/useApiRoutes";
-import { toast } from "@/hooks/use-toast";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui";
-import { cn } from "@/lib/utils";
+import { PermissionGroupComponent } from "../components/PermissionGroup";
+import { useApiRoutes } from "../hooks/useApiRoutes";
+import { toast } from "../hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { TooltipProvider } from "../components/ui/tooltip";
 
 type ApiResource = {
   method: string;
@@ -46,8 +18,12 @@ type PermissionActionWithResources = {
   resources: ApiResource[];
 };
 
-type PermissionGroupWithChildren = PermissionGroup & {
-  children?: PermissionChild[];
+type PermissionGroupWithChildren = {
+  name: string;
+  slug: string;
+  icon: "CreditCard" | "LightningCharge" | "Home";
+  sequence: number;
+  children?: PermissionGroupWithChildren[];
   actions?: PermissionActionWithResources[];
 };
 
@@ -61,7 +37,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Admin",
         slug: "admin",
-        icon: "Lightning",
+        icon: "LightningCharge",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2101,
@@ -96,9 +72,7 @@ const initialData: PermissionGroupWithChildren[] = [
           {
             code: "disable",
             name: "DISABLE",
-            resources: [
-              { method: "PATCH", path: "/api/v1/users/:id/disable" },
-            ],
+            resources: [{ method: "PATCH", path: "/api/v1/users/:id/disable" }],
           },
           {
             code: "enable",
@@ -110,7 +84,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Teacher",
         slug: "teacher",
-        icon: "Lightning",
+        icon: "LightningCharge",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2102,
@@ -211,10 +185,8 @@ const initialData: PermissionGroupWithChildren[] = [
 const PermissionEditor = () => {
   const { data: apiRoutes, isLoading, error } = useApiRoutes();
 
-  // Selected actions - keys like "users:add" or "admin:add"
   const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
 
-  // We show initial data loaded from hardcoded initialData for demo. In real app, data could come from backend.  
   const [permissions, setPermissions] = useState<PermissionGroupWithChildren[]>(initialData);
 
   const toggleAction = useCallback(
@@ -241,10 +213,6 @@ const PermissionEditor = () => {
   );
 
   function generateYaml(permGroups: PermissionGroupWithChildren[]) {
-    // Convert the permissions data structure to YAML string (approximate).
-    // We can leverage JSON.stringify with indentation and then replace the key names to yaml style
-    // but for this demo, a simple manual conversion is enough for instructional purposes.
-
     function yamlString(value: any, indent = 0): string {
       const space = "  ".repeat(indent);
       if (typeof value === "string") {
@@ -273,7 +241,6 @@ const PermissionEditor = () => {
       return String(value);
     }
 
-    // Filter permissions based on selectedActions to only include those enabled
     function filterActions(actions: PermissionActionWithResources[], slug: string) {
       return actions.filter((a) => selectedActions.has(`${slug}:${a.code}`));
     }
@@ -313,9 +280,8 @@ const PermissionEditor = () => {
       .map((g) => processGroup(g))
       .filter((g) => g.actions || g.children);
 
-    // Use our simple YAML string generator and replace double quotes around simple strings for nicer output
     let yaml = yamlString(filtered);
-    yaml = yaml.replace(/"([^"]+)"/g, "$1"); // Remove quotes for strings without spaces
+    yaml = yaml.replace(/"([^"]+)"/g, "$1");
 
     return `- ${yaml.trimStart()}`;
   }
@@ -378,4 +344,3 @@ const PermissionEditor = () => {
 };
 
 export default PermissionEditor;
-
