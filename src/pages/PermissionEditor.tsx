@@ -21,20 +21,22 @@ type PermissionActionWithResources = {
   resources: ApiResource[];
 };
 
+// Separate PermissionChildWithRouter type includes router and component keys
 type PermissionChildWithRouter = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
   router: string;
   component: string;
   sequence: number;
   actions: PermissionActionWithResources[];
 };
 
+// PermissionGroupWithChildren updated: children are of type PermissionChildWithRouter[]
 type PermissionGroupWithChildren = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
   sequence: number;
   children?: PermissionChildWithRouter[];
   actions?: PermissionActionWithResources[];
@@ -50,7 +52,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Admin",
         slug: "admin",
-        icon: "LightningCharge",
+        icon: "Lightning",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2101,
@@ -97,7 +99,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Teacher",
         slug: "teacher",
-        icon: "LightningCharge",
+        icon: "Lightning",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2102,

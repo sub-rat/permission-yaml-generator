@@ -1,9 +1,6 @@
 
-// Fix imports to use proper named imports for UI components.
-// Fix icon imports and type to use correct icon name LightningCharge.
-
 import React, { useState } from "react";
-import { CreditCard, LightningCharge, Home } from "lucide-react";
+import { CreditCard, Lightning, Home } from "lucide-react"; // use Lightning instead of LightningCharge
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
@@ -30,7 +27,7 @@ export type PermissionAction = {
 export type PermissionChild = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
   router: string;
   component: string;
   sequence: number;
@@ -40,7 +37,7 @@ export type PermissionChild = {
 export type PermissionGroup = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "LightningCharge" | "Home";
+  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
   sequence: number;
   actions?: PermissionAction[];
   children?: PermissionChild[];
@@ -48,7 +45,7 @@ export type PermissionGroup = {
 
 const iconMap = {
   CreditCard: CreditCard,
-  LightningCharge: LightningCharge,
+  Lightning: Lightning,
   Home: Home,
 };
 
