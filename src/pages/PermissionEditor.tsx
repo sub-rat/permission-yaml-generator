@@ -25,7 +25,7 @@ type PermissionActionWithResources = {
 type PermissionChildWithRouter = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
+  icon: "CreditCard" | "Zap" | "Home"; // use Zap
   router: string;
   component: string;
   sequence: number;
@@ -36,7 +36,7 @@ type PermissionChildWithRouter = {
 type PermissionGroupWithChildren = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
+  icon: "CreditCard" | "Zap" | "Home"; // use Zap
   sequence: number;
   children?: PermissionChildWithRouter[];
   actions?: PermissionActionWithResources[];
@@ -52,7 +52,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Admin",
         slug: "admin",
-        icon: "Lightning",
+        icon: "Zap",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2101,
@@ -99,7 +99,7 @@ const initialData: PermissionGroupWithChildren[] = [
       {
         name: "Teacher",
         slug: "teacher",
-        icon: "Lightning",
+        icon: "Zap",
         router: "/system/teacher",
         component: "system/teacher/index",
         sequence: 2102,

@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { CreditCard, Lightning, Home } from "lucide-react"; // use Lightning instead of LightningCharge
+import { CreditCard, Zap, Home } from "lucide-react"; // use Zap instead of Lightning
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
@@ -27,7 +27,7 @@ export type PermissionAction = {
 export type PermissionChild = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
+  icon: "CreditCard" | "Zap" | "Home"; // use Zap
   router: string;
   component: string;
   sequence: number;
@@ -37,7 +37,7 @@ export type PermissionChild = {
 export type PermissionGroup = {
   name: string;
   slug: string;
-  icon: "CreditCard" | "Lightning" | "Home"; // use Lightning
+  icon: "CreditCard" | "Zap" | "Home"; // use Zap
   sequence: number;
   actions?: PermissionAction[];
   children?: PermissionChild[];
@@ -45,7 +45,7 @@ export type PermissionGroup = {
 
 const iconMap = {
   CreditCard: CreditCard,
-  Lightning: Lightning,
+  Zap: Zap,
   Home: Home,
 };
 
