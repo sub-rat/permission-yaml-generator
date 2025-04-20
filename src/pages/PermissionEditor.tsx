@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { TooltipProvider } from "../components/ui/tooltip";
@@ -72,12 +73,11 @@ const dummyPermissionData: PermissionGroupWithChildren[] = [
 ];
 
 const PermissionEditor = () => {
-  // States
   const [apiRoutes, setApiRoutes] = useState<ApiResource[]>([]);
   const [permissions, setPermissions] = useState<PermissionGroupWithChildren[]>([]);
   const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
+  const [yamlInput, setYamlInput] = useState<string>("");
 
-  // Loading dummy api routes on mount
   useEffect(() => {
     const fetchRoutes = async () => {
       await new Promise((res) => setTimeout(res, 300));
@@ -86,7 +86,6 @@ const PermissionEditor = () => {
     fetchRoutes();
   }, []);
 
-  // Loading dummy permission data on mount
   useEffect(() => {
     const fetchPermissions = async () => {
       await new Promise((res) => setTimeout(res, 300));
@@ -104,11 +103,13 @@ const PermissionEditor = () => {
         });
       });
       setSelectedActions(initialSelected);
+
+      const generatedYaml = generateYaml(dummyPermissionData);
+      setYamlInput(generatedYaml);
     };
     fetchPermissions();
   }, []);
 
-  // Toggle action selection
   const toggleAction = useCallback(
     (groupSlug: string, actionCode: string, enabled: boolean) => {
       setSelectedActions((prev) => {
@@ -130,89 +131,6 @@ const PermissionEditor = () => {
     []
   );
 
-  // Editing group's fields
-  const onEditGroup = (updatedGroup: PermissionGroupWithChildren) => {
-    setPermissions((prev) => {
-      const updated = prev.map((group) => (group.slug === updatedGroup.slug ? updatedGroup : group));
-      return updated;
-    });
-  };
-
-  // Editing child's fields
-  const onEditChild = (parentSlug: string, updatedChild: PermissionChild) => {
-    setPermissions((prev) => {
-      const updated = prev.map((group) => {
-        if (group.slug === parentSlug && group.children) {
-          const newChildren = group.children.map((child) =>
-            child.slug === updatedChild.slug ? updatedChild : child
-          );
-          return {
-            ...group,
-            children: newChildren,
-          };
-        }
-        return group;
-      });
-      return updated;
-    });
-  };
-
-  // Remove child from group
-  const onRemoveChild = (parentSlug: string, childSlug: string) => {
-    setPermissions((prev) => {
-      const updated = prev.map((group) => {
-        if (group.slug === parentSlug && group.children) {
-          const newChildren = group.children.filter((child) => child.slug !== childSlug);
-          return {
-            ...group,
-            children: newChildren,
-          };
-        }
-        return group;
-      });
-      return updated;
-    });
-    toast({
-      title: "Child removed",
-      description: `Child with slug "${childSlug}" removed from "${parentSlug}".`,
-    });
-  };
-
-  // Remove action from group or child
-  const onRemoveAction = (groupSlug: string, actionCode: string) => {
-    setPermissions((prev) => {
-      const updated = prev.map((group) => {
-        if (group.slug === groupSlug) {
-          if (group.actions) {
-            const filteredActions = group.actions.filter((a) => a.code !== actionCode);
-            return { ...group, actions: filteredActions };
-          }
-        }
-        if (group.children) {
-          const newChildren = group.children.map((child) => {
-            if (child.slug === groupSlug) {
-              if (child.actions) {
-                const filteredActions = child.actions.filter((a) => a.code !== actionCode);
-                return { ...child, actions: filteredActions };
-              }
-            }
-            return child;
-          });
-          return { ...group, children: newChildren };
-        }
-        return group;
-      });
-      return updated;
-    });
-    setSelectedActions((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(`${groupSlug}:${actionCode}`);
-      return newSet;
-    });
-    toast({ title: "Action removed", description: `Action "${actionCode}" removed from "${groupSlug}".` });
-  };
-
-  // Yaml generation function (unchanged)
   function generateYaml(permGroups: PermissionGroupWithChildren[]) {
     function yamlString(value: any, indent = 0): string {
       const space = "  ".repeat(indent);
@@ -289,6 +207,46 @@ const PermissionEditor = () => {
 
     return `- ${yaml.trimStart()}`;
   }
+
+  const loadPermissionsFromYaml = () => {
+    try {
+      const parsed = yaml.load(yamlInput);
+      if (!Array.isArray(parsed)) {
+        toast({ title: "Invalid YAML", description: "Top-level structure should be an array." });
+        return;
+      }
+      const normalizedGroups = (parsed as any[]).map((group) => ({
+        ...group,
+        actions: group.actions ?? [],
+        children: group.children?.map((child: any) => ({
+          ...child,
+          actions: child.actions ?? [],
+        })) ?? [],
+      })) as PermissionGroupWithChildren[];
+      setPermissions(normalizedGroups);
+
+      const newSelected = new Set<string>();
+      normalizedGroups.forEach((group) => {
+        group.actions?.forEach((action) => {
+          newSelected.add(`${group.slug}:${action.code}`);
+        });
+        group.children?.forEach((child) => {
+          child.actions?.forEach((action) => {
+            newSelected.add(`${child.slug}:${action.code}`);
+          });
+        });
+      });
+      setSelectedActions(newSelected);
+      toast({ title: "YAML loaded", description: "Permissions loaded from YAML successfully." });
+    } catch (e) {
+      toast({ title: "YAML Parse Error", description: (e as Error).message });
+    }
+  };
+
+  useEffect(() => {
+    const yamlStr = generateYaml(permissions);
+    setYamlInput(yamlStr);
+  }, [permissions, selectedActions]);
 
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupSlug, setNewGroupSlug] = useState("");
@@ -464,7 +422,6 @@ const PermissionEditor = () => {
       <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">Permission Editor</h1>
       <TooltipProvider>
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Left panel: Menu Table for managing existing permissions */}
           <div className="md:w-1/2 overflow-y-auto max-h-[70vh] p-2 border rounded bg-gray-50 dark:bg-gray-800">
             <MenuTable
               permissions={permissions}
@@ -476,10 +433,7 @@ const PermissionEditor = () => {
               onRemoveChild={onRemoveChild}
             />
           </div>
-
-          {/* Right panel: Collapsible forms for adding new group, child, and actions */}
           <div className="md:w-1/2 flex flex-col gap-6 overflow-y-auto max-h-[70vh] p-4 border rounded bg-gray-50 dark:bg-gray-900">
-            {/* Collapsible Add New Group */}
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="w-full cursor-pointer border border-purple-400 bg-purple-200 py-2 px-4 rounded-md text-center font-semibold text-purple-800 hover:bg-purple-300 transition-colors">
                 Add New Permission Group
@@ -514,8 +468,6 @@ const PermissionEditor = () => {
                 </Button>
               </CollapsibleContent>
             </Collapsible>
-
-            {/* Collapsible Add New Child */}
             <Collapsible>
               <CollapsibleTrigger className="w-full cursor-pointer border border-sky-400 bg-sky-200 py-2 px-4 rounded-md text-center font-semibold text-sky-800 hover:bg-sky-300 transition-colors">
                 Add New Child Permission
@@ -579,8 +531,6 @@ const PermissionEditor = () => {
                 </Button>
               </CollapsibleContent>
             </Collapsible>
-
-            {/* Collapsible Add New Action */}
             <Collapsible>
               <CollapsibleTrigger className="w-full cursor-pointer border border-emerald-400 bg-emerald-200 py-2 px-4 rounded-md text-center font-semibold text-emerald-800 hover:bg-emerald-300 transition-colors">
                 Add New Action
@@ -671,14 +621,33 @@ const PermissionEditor = () => {
                 </Button>
               </CollapsibleContent>
             </Collapsible>
-
-            {/* YAML Output */}
+            <Card className="mb-4 !p-4 bg-amber-50 dark:bg-amber-950">
+              <CardHeader>
+                <CardTitle className="text-center">Load Permissions from YAML</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <textarea
+                  value={yamlInput}
+                  onChange={(e) => setYamlInput(e.target.value)}
+                  className="w-full h-40 p-2 font-mono text-sm border border-amber-300 rounded resize-none bg-white dark:bg-amber-900 text-amber-950 dark:text-amber-50"
+                  placeholder="Paste permissions YAML here..."
+                  spellCheck={false}
+                />
+                <Button
+                  onClick={loadPermissionsFromYaml}
+                  className="mt-2 w-full"
+                  size="sm"
+                >
+                  Load YAML
+                </Button>
+              </CardContent>
+            </Card>
             <Card className="overflow-auto">
               <CardHeader>
                 <CardTitle className="text-center">Generated YAML (Selected Permissions)</CardTitle>
               </CardHeader>
               <CardContent className="overflow-auto max-h-[50vh] bg-gray-50 p-4 rounded font-mono text-sm whitespace-pre-wrap">
-                {generateYaml(permissions)}
+                {yamlInput}
               </CardContent>
             </Card>
           </div>
