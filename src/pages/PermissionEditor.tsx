@@ -1,44 +1,13 @@
-
 import React, { useState, useCallback, useEffect } from "react";
-import { PermissionGroupComponent } from "../components/PermissionGroup";
 import { toast } from "../hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
+import { MenuTable, PermissionGroup, PermissionChild, PermissionActionWithResources, ApiResource } from "../components/MenuTable";
 
-type ApiResource = {
-  method: string;
-  path: string;
-  attribute?: string;
-};
-
-type PermissionActionWithResources = {
-  code: string;
-  name: string;
-  resources: ApiResource[];
-};
-
-type PermissionChildWithRouter = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home";
-  router: string;
-  component: string;
-  sequence: number;
-  actions: PermissionActionWithResources[];
-};
-
-type PermissionGroupWithChildren = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home";
-  sequence: number;
-  children?: PermissionChildWithRouter[];
-  actions?: PermissionActionWithResources[];
-};
+type PermissionGroupWithChildren = PermissionGroup & { children?: PermissionChild[]; actions?: PermissionActionWithResources[] };
 
 const dummyApiRoutes: ApiResource[] = [
   { method: "GET", path: "/api/v1/roles" },
@@ -103,10 +72,12 @@ const dummyPermissionData: PermissionGroupWithChildren[] = [
 ];
 
 const PermissionEditor = () => {
+  // States
   const [apiRoutes, setApiRoutes] = useState<ApiResource[]>([]);
   const [permissions, setPermissions] = useState<PermissionGroupWithChildren[]>([]);
   const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
 
+  // Loading dummy api routes on mount
   useEffect(() => {
     const fetchRoutes = async () => {
       await new Promise((res) => setTimeout(res, 300));
@@ -115,6 +86,7 @@ const PermissionEditor = () => {
     fetchRoutes();
   }, []);
 
+  // Loading dummy permission data on mount
   useEffect(() => {
     const fetchPermissions = async () => {
       await new Promise((res) => setTimeout(res, 300));
@@ -126,7 +98,7 @@ const PermissionEditor = () => {
           initialSelected.add(`${group.slug}:${action.code}`);
         });
         group.children?.forEach((child) => {
-          child.actions.forEach((action) => {
+          child.actions?.forEach((action) => {
             initialSelected.add(`${child.slug}:${action.code}`);
           });
         });
@@ -136,6 +108,7 @@ const PermissionEditor = () => {
     fetchPermissions();
   }, []);
 
+  // Toggle action selection
   const toggleAction = useCallback(
     (groupSlug: string, actionCode: string, enabled: boolean) => {
       setSelectedActions((prev) => {
@@ -151,13 +124,171 @@ const PermissionEditor = () => {
 
       toast({
         title: "Permission Changed",
-        description: `Action "${actionCode}" for "${groupSlug}" ${
-          enabled ? "enabled" : "disabled"
-        }`,
+        description: `Action "${actionCode}" for "${groupSlug}" ${enabled ? "enabled" : "disabled"}`,
       });
     },
     []
   );
+
+  // Editing group's fields
+  const onEditGroup = (updatedGroup: PermissionGroupWithChildren) => {
+    setPermissions((prev) => {
+      const updated = prev.map((group) => (group.slug === updatedGroup.slug ? updatedGroup : group));
+      return updated;
+    });
+  };
+
+  // Editing child's fields
+  const onEditChild = (parentSlug: string, updatedChild: PermissionChild) => {
+    setPermissions((prev) => {
+      const updated = prev.map((group) => {
+        if (group.slug === parentSlug && group.children) {
+          const newChildren = group.children.map((child) =>
+            child.slug === updatedChild.slug ? updatedChild : child
+          );
+          return {
+            ...group,
+            children: newChildren,
+          };
+        }
+        return group;
+      });
+      return updated;
+    });
+  };
+
+  // Remove child from group
+  const onRemoveChild = (parentSlug: string, childSlug: string) => {
+    setPermissions((prev) => {
+      const updated = prev.map((group) => {
+        if (group.slug === parentSlug && group.children) {
+          const newChildren = group.children.filter((child) => child.slug !== childSlug);
+          return {
+            ...group,
+            children: newChildren,
+          };
+        }
+        return group;
+      });
+      return updated;
+    });
+    toast({
+      title: "Child removed",
+      description: `Child with slug "${childSlug}" removed from "${parentSlug}".`,
+    });
+  };
+
+  // Remove action from group or child
+  const onRemoveAction = (groupSlug: string, actionCode: string) => {
+    setPermissions((prev) => {
+      const updated = prev.map((group) => {
+        if (group.slug === groupSlug) {
+          if (group.actions) {
+            const filteredActions = group.actions.filter((a) => a.code !== actionCode);
+            return { ...group, actions: filteredActions };
+          }
+        }
+        if (group.children) {
+          const newChildren = group.children.map((child) => {
+            if (child.slug === groupSlug) {
+              if (child.actions) {
+                const filteredActions = child.actions.filter((a) => a.code !== actionCode);
+                return { ...child, actions: filteredActions };
+              }
+            }
+            return child;
+          });
+          return { ...group, children: newChildren };
+        }
+        return group;
+      });
+      return updated;
+    });
+    setSelectedActions((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(`${groupSlug}:${actionCode}`);
+      return newSet;
+    });
+    toast({ title: "Action removed", description: `Action "${actionCode}" removed from "${groupSlug}".` });
+  };
+
+  // Yaml generation function (unchanged)
+  function generateYaml(permGroups: PermissionGroupWithChildren[]) {
+    function yamlString(value: any, indent = 0): string {
+      const space = "  ".repeat(indent);
+      if (typeof value === "string") {
+        if (value.includes("\n")) {
+          return `|-\n${"  ".repeat(indent + 1)}${value.replace(/\n/g, "\n" + "  ".repeat(indent + 1))}`;
+        } else {
+          return `"${value}"`;
+        }
+      }
+      if (Array.isArray(value)) {
+        return (
+          "\n" + value.map((v) => `${space}- ${yamlString(v, indent + 1).trimStart()}`).join("\n")
+        );
+      }
+      if (typeof value === "object" && value !== null) {
+        return (
+          "\n" +
+          Object.entries(value)
+            .map(([k, v]) => `${space}${k}: ${yamlString(v, indent + 1)}`)
+            .join("\n")
+        );
+      }
+      return String(value);
+    }
+
+    function filterActions(actions: PermissionActionWithResources[], slug: string) {
+      return actions.filter((a) => selectedActions.has(`${slug}:${a.code}`));
+    }
+
+    function processGroup(group: PermissionGroupWithChildren): any {
+      const result: any = {
+        name: group.name,
+        slug: group.slug,
+        icon: group.icon,
+        sequence: group.sequence,
+      };
+
+      if (group.actions && group.actions.length > 0) {
+        const filteredActions = filterActions(group.actions, group.slug);
+        if (filteredActions.length > 0) {
+          result.actions = filteredActions.map((a) => ({
+            code: a.code,
+            name: a.name,
+            resources: a.resources,
+          }));
+        }
+      }
+
+      if (group.children && group.children.length > 0) {
+        const filteredChildren = group.children
+          .map((c) => ({
+            name: c.name,
+            slug: c.slug,
+            icon: c.icon,
+            sequence: c.sequence,
+            actions: c.actions && filterActions(c.actions, c.slug).length > 0 ? filterActions(c.actions, c.slug) : undefined,
+            children: undefined,
+          }))
+          .filter((c) => c.actions || c.children);
+
+        if (filteredChildren.length > 0) {
+          result.children = filteredChildren;
+        }
+      }
+
+      return result;
+    }
+
+    const filtered = permGroups.map((g) => processGroup(g)).filter((g) => g.actions || g.children);
+
+    let yaml = yamlString(filtered);
+    yaml = yaml.replace(/"([^"]+)"/g, "$1");
+
+    return `- ${yaml.trimStart()}`;
+  }
 
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupSlug, setNewGroupSlug] = useState("");
@@ -166,7 +297,7 @@ const PermissionEditor = () => {
   const [currentParentSlugForChild, setCurrentParentSlugForChild] = useState<string | null>(null);
   const [newChildName, setNewChildName] = useState("");
   const [newChildSlug, setNewChildSlug] = useState("");
-  const [newChildIcon, setNewChildIcon] = useState<PermissionChildWithRouter["icon"]>("CreditCard");
+  const [newChildIcon, setNewChildIcon] = useState<PermissionChild["icon"]>("CreditCard");
   const [newChildRouter, setNewChildRouter] = useState("");
   const [newChildComponent, setNewChildComponent] = useState("");
 
@@ -223,7 +354,7 @@ const PermissionEditor = () => {
         toast({ title: "Validation error", description: "Child slug already exists" });
         return prev;
       }
-      const newChild: PermissionChildWithRouter = {
+      const newChild: PermissionChild = {
         name: newChildName.trim(),
         slug: newChildSlug.trim(),
         icon: newChildIcon,
@@ -322,114 +453,7 @@ const PermissionEditor = () => {
     [toggleAction]
   );
 
-  const removeActionFromGroupOrChild = (groupSlug: string, actionCode: string) => {
-    setPermissions((prev) => {
-      const updated = prev.map((group) => {
-        if (group.slug === groupSlug) {
-          const filteredActions = group.actions?.filter((a) => a.code !== actionCode) ?? [];
-          return { ...group, actions: filteredActions };
-        }
-        if (group.children) {
-          const newChildren = group.children.map((child) => {
-            if (child.slug === groupSlug) {
-              const filteredActions = child.actions.filter((a) => a.code !== actionCode);
-              return { ...child, actions: filteredActions };
-            }
-            return child;
-          });
-          return { ...group, children: newChildren };
-        }
-        return group;
-      });
-      return updated;
-    });
-    setSelectedActions((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(`${groupSlug}:${actionCode}`);
-      return newSet;
-    });
-    toast({ title: "Action removed", description: `Action "${actionCode}" removed from "${groupSlug}".` });
-  };
-
-  function generateYaml(permGroups: PermissionGroupWithChildren[]) {
-    function yamlString(value: any, indent = 0): string {
-      const space = "  ".repeat(indent);
-      if (typeof value === "string") {
-        if (value.includes("\n")) {
-          return `|-\n${"  ".repeat(indent + 1)}${value.replace(/\n/g, "\n" + "  ".repeat(indent + 1))}`;
-        } else {
-          return `"${value}"`;
-        }
-      }
-      if (Array.isArray(value)) {
-        return (
-          "\n" +
-          value.map((v) => `${space}- ${yamlString(v, indent + 1).trimStart()}`).join("\n")
-        );
-      }
-      if (typeof value === "object" && value !== null) {
-        return (
-          "\n" +
-          Object.entries(value)
-            .map(([k, v]) => `${space}${k}: ${yamlString(v, indent + 1)}`)
-            .join("\n")
-        );
-      }
-      return String(value);
-    }
-
-    function filterActions(actions: PermissionActionWithResources[], slug: string) {
-      return actions.filter((a) => selectedActions.has(`${slug}:${a.code}`));
-    }
-
-    function processGroup(group: PermissionGroupWithChildren): any {
-      const result: any = {
-        name: group.name,
-        slug: group.slug,
-        icon: group.icon,
-        sequence: group.sequence,
-      };
-
-      if (group.actions && group.actions.length > 0) {
-        const filteredActions = filterActions(group.actions, group.slug);
-        if (filteredActions.length > 0) {
-          result.actions = filteredActions.map((a) => ({
-            code: a.code,
-            name: a.name,
-            resources: a.resources,
-          }));
-        }
-      }
-
-      if (group.children && group.children.length > 0) {
-        const filteredChildren = group.children
-          .map((c) => ({
-            name: c.name,
-            slug: c.slug,
-            icon: c.icon,
-            sequence: c.sequence,
-            actions: c.actions && filterActions(c.actions, c.slug).length > 0 ? filterActions(c.actions, c.slug) : undefined,
-            children: undefined,
-          }))
-          .filter((c) => c.actions || c.children);
-
-        if (filteredChildren.length > 0) {
-          result.children = filteredChildren;
-        }
-      }
-
-      return result;
-    }
-
-    const filtered = permGroups.map((g) => processGroup(g)).filter((g) => g.actions || g.children);
-
-    let yaml = yamlString(filtered);
-    yaml = yaml.replace(/"([^"]+)"/g, "$1");
-
-    return `- ${yaml.trimStart()}`;
-  }
-
-  const apiRouteOptions = apiRoutes.map((route, idx) => ({
+  const apiRouteOptions = dummyApiRoutes.map((route, idx) => ({
     id: idx,
     label: `${route.method} ${route.path}`,
     value: route,
@@ -440,27 +464,27 @@ const PermissionEditor = () => {
       <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">Permission Editor</h1>
       <TooltipProvider>
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Left panel: Permissions tree */}
-          <div className="md:w-1/2 overflow-y-auto max-h-[70vh] p-2 border rounded">
-            <div className="">
-              {permissions.map((grp) => (
-                <PermissionGroupComponent
-                  key={grp.slug}
-                  group={grp}
-                  onToggleAction={onToggleActionSelected}
-                  selectedActions={selectedActions}
-                />
-              ))}
-            </div>
+          {/* Left panel: Menu Table for managing existing permissions */}
+          <div className="md:w-1/2 overflow-y-auto max-h-[70vh] p-2 border rounded bg-gray-50 dark:bg-gray-800">
+            <MenuTable
+              permissions={permissions}
+              selectedActions={selectedActions}
+              onToggleAction={toggleAction}
+              onEditGroup={onEditGroup}
+              onEditChild={onEditChild}
+              onRemoveAction={onRemoveAction}
+              onRemoveChild={onRemoveChild}
+            />
           </div>
-          {/* Right panel: Form Collapsibles */}
-          <div className="md:w-1/2 flex flex-col gap-6">
+
+          {/* Right panel: Collapsible forms for adding new group, child, and actions */}
+          <div className="md:w-1/2 flex flex-col gap-6 overflow-y-auto max-h-[70vh] p-4 border rounded bg-gray-50 dark:bg-gray-900">
             {/* Collapsible Add New Group */}
             <Collapsible defaultOpen>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-purple-200 py-2 px-4 rounded-md text-center font-semibold text-purple-800 hover:bg-purple-300 transition-colors">
+              <CollapsibleTrigger className="w-full cursor-pointer border border-purple-400 bg-purple-200 py-2 px-4 rounded-md text-center font-semibold text-purple-800 hover:bg-purple-300 transition-colors">
                 Add New Permission Group
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-purple-50 space-y-3">
+              <CollapsibleContent className="p-4 border border-t-0 border-purple-400 rounded-b-md bg-purple-50 space-y-3">
                 <Input
                   type="text"
                   placeholder="Group Name"
@@ -493,10 +517,10 @@ const PermissionEditor = () => {
 
             {/* Collapsible Add New Child */}
             <Collapsible>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-sky-200 py-2 px-4 rounded-md text-center font-semibold text-sky-800 hover:bg-sky-300 transition-colors">
+              <CollapsibleTrigger className="w-full cursor-pointer border border-sky-400 bg-sky-200 py-2 px-4 rounded-md text-center font-semibold text-sky-800 hover:bg-sky-300 transition-colors">
                 Add New Child Permission
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-sky-50 space-y-3">
+              <CollapsibleContent className="p-4 border border-t-0 border-sky-400 rounded-b-md bg-sky-50 space-y-3">
                 <select
                   value={currentParentSlugForChild ?? ""}
                   onChange={(e) => setCurrentParentSlugForChild(e.target.value)}
@@ -558,10 +582,10 @@ const PermissionEditor = () => {
 
             {/* Collapsible Add New Action */}
             <Collapsible>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-emerald-200 py-2 px-4 rounded-md text-center font-semibold text-emerald-800 hover:bg-emerald-300 transition-colors">
+              <CollapsibleTrigger className="w-full cursor-pointer border border-emerald-400 bg-emerald-200 py-2 px-4 rounded-md text-center font-semibold text-emerald-800 hover:bg-emerald-300 transition-colors">
                 Add New Action
               </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-emerald-50 space-y-3">
+              <CollapsibleContent className="p-4 border border-t-0 border-emerald-400 rounded-b-md bg-emerald-50 space-y-3">
                 <select
                   value={selectedGroupOrChildForNewAction?.slug ?? ""}
                   onChange={(e) => {
