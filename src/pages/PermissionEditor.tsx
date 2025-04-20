@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from "react";
 import { PermissionGroupComponent } from "../components/PermissionGroup";
 import { toast } from "../hooks/use-toast";
@@ -6,6 +7,7 @@ import { TooltipProvider } from "../components/ui/tooltip";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
 
 type ApiResource = {
   method: string;
@@ -247,12 +249,6 @@ const PermissionEditor = () => {
     toast({ title: "Child added", description: `Child "${newChildName.trim()}" added successfully.` });
   };
 
-  const apiRouteOptions = apiRoutes.map((route, idx) => ({
-    id: idx,
-    label: `${route.method} ${route.path}`,
-    value: route,
-  }));
-
   const addActionToGroupOrChild = () => {
     if (!selectedGroupOrChildForNewAction) {
       toast({ title: "Validation error", description: "Select group or child for new action" });
@@ -433,13 +429,20 @@ const PermissionEditor = () => {
     return `- ${yaml.trimStart()}`;
   }
 
+  const apiRouteOptions = apiRoutes.map((route, idx) => ({
+    id: idx,
+    label: `${route.method} ${route.path}`,
+    value: route,
+  }));
+
   return (
-    <section className="min-h-screen max-w-7xl mx-auto p-4 bg-white rounded-md shadow-md">
-      <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground">Permission Editor</h1>
+    <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
+      <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">Permission Editor</h1>
       <TooltipProvider>
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Left panel: Permissions tree */}
           <div className="md:w-1/2 overflow-y-auto max-h-[70vh] p-2 border rounded">
-            <div className="mb-6 space-y-4">
+            <div className="">
               {permissions.map((grp) => (
                 <PermissionGroupComponent
                   key={grp.slug}
@@ -449,119 +452,116 @@ const PermissionEditor = () => {
                 />
               ))}
             </div>
-            <div className="border-t pt-4">
-              <h2 className="font-semibold mb-2">Add New Permission Group</h2>
-              <Input
-                type="text"
-                placeholder="Group Name"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                className="mb-2"
-              />
-              <Input
-                type="text"
-                placeholder="Group Slug"
-                value={newGroupSlug}
-                onChange={(e) => setNewGroupSlug(e.target.value)}
-                className="mb-2"
-              />
-              <select
-                value={newGroupIcon}
-                onChange={(e) => setNewGroupIcon(e.target.value as any)}
-                className="mb-2 w-full rounded border border-gray-300 px-3 py-2"
-              >
-                <option value="CreditCard">CreditCard</option>
-                <option value="Zap">Zap</option>
-                <option value="Home">Home</option>
-              </select>
-              <Button onClick={addPermissionGroup} className="w-full" size="sm">
-                Add Group
-              </Button>
-            </div>
-            <div className="border-t pt-4 mt-4">
-              <h2 className="font-semibold mb-2">Add New Child Permission</h2>
-              <select
-                value={currentParentSlugForChild ?? ""}
-                onChange={(e) => setCurrentParentSlugForChild(e.target.value)}
-                className="mb-2 w-full rounded border border-gray-300 px-3 py-2"
-              >
-                <option value="" disabled>
-                  Select Parent Group
-                </option>
-                {permissions.map((grp) => (
-                  <option key={grp.slug} value={grp.slug}>
-                    {grp.name}
-                  </option>
-                ))}
-              </select>
-              <Input
-                type="text"
-                placeholder="Child Name"
-                value={newChildName}
-                onChange={(e) => setNewChildName(e.target.value)}
-                className="mb-2"
-              />
-              <Input
-                type="text"
-                placeholder="Child Slug"
-                value={newChildSlug}
-                onChange={(e) => setNewChildSlug(e.target.value)}
-                className="mb-2"
-              />
-              <Input
-                type="text"
-                placeholder="Route Path"
-                value={newChildRouter}
-                onChange={(e) => setNewChildRouter(e.target.value)}
-                className="mb-2"
-              />
-              <Input
-                type="text"
-                placeholder="Component Path"
-                value={newChildComponent}
-                onChange={(e) => setNewChildComponent(e.target.value)}
-                className="mb-2"
-              />
-              <select
-                value={newChildIcon}
-                onChange={(e) => setNewChildIcon(e.target.value as any)}
-                className="mb-2 w-full rounded border border-gray-300 px-3 py-2"
-              >
-                <option value="CreditCard">CreditCard</option>
-                <option value="Zap">Zap</option>
-                <option value="Home">Home</option>
-              </select>
-              <Button onClick={addPermissionChild} className="w-full" size="sm">
-                Add Child
-              </Button>
-            </div>
           </div>
-          <div className="md:w-1/2 flex flex-col gap-4">
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle>Available API Endpoints</CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[200px] overflow-y-auto text-sm font-mono bg-gray-50 p-2 rounded">
-                {apiRoutes.length === 0 ? (
-                  <p>Loading API routes...</p>
-                ) : (
-                  <ul>
-                    {apiRoutes.map(({ method, path }, i) => (
-                      <li key={`${method}-${path}-${i}`} className="mb-0.5">
-                        <code>
-                          <span className="font-semibold">{method}</span> {path}
-                        </code>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="overflow-auto">
-              <CardHeader>
-                <CardTitle>Add New Action</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+          {/* Right panel: Form Collapsibles */}
+          <div className="md:w-1/2 flex flex-col gap-6">
+            {/* Collapsible Add New Group */}
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-purple-200 py-2 px-4 rounded-md text-center font-semibold text-purple-800 hover:bg-purple-300 transition-colors">
+                Add New Permission Group
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-purple-50 space-y-3">
+                <Input
+                  type="text"
+                  placeholder="Group Name"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="mb-2"
+                />
+                <Input
+                  type="text"
+                  placeholder="Group Slug"
+                  value={newGroupSlug}
+                  onChange={(e) => setNewGroupSlug(e.target.value)}
+                  className="mb-2"
+                />
+                <select
+                  value={newGroupIcon}
+                  onChange={(e) => setNewGroupIcon(e.target.value as any)}
+                  className="mb-2 w-full rounded border border-purple-400 px-3 py-2 text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label="Select Group Icon"
+                >
+                  <option value="CreditCard">CreditCard</option>
+                  <option value="Zap">Zap</option>
+                  <option value="Home">Home</option>
+                </select>
+                <Button onClick={addPermissionGroup} className="w-full" size="sm" variant="secondary">
+                  Add Group
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Collapsible Add New Child */}
+            <Collapsible>
+              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-sky-200 py-2 px-4 rounded-md text-center font-semibold text-sky-800 hover:bg-sky-300 transition-colors">
+                Add New Child Permission
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-sky-50 space-y-3">
+                <select
+                  value={currentParentSlugForChild ?? ""}
+                  onChange={(e) => setCurrentParentSlugForChild(e.target.value)}
+                  className="mb-2 w-full rounded border border-sky-400 px-3 py-2 text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  aria-label="Select Parent Group"
+                >
+                  <option value="" disabled>
+                    Select Parent Group
+                  </option>
+                  {permissions.map((grp) => (
+                    <option key={grp.slug} value={grp.slug}>
+                      {grp.name}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  type="text"
+                  placeholder="Child Name"
+                  value={newChildName}
+                  onChange={(e) => setNewChildName(e.target.value)}
+                  className="mb-2"
+                />
+                <Input
+                  type="text"
+                  placeholder="Child Slug"
+                  value={newChildSlug}
+                  onChange={(e) => setNewChildSlug(e.target.value)}
+                  className="mb-2"
+                />
+                <Input
+                  type="text"
+                  placeholder="Route Path"
+                  value={newChildRouter}
+                  onChange={(e) => setNewChildRouter(e.target.value)}
+                  className="mb-2"
+                />
+                <Input
+                  type="text"
+                  placeholder="Component Path"
+                  value={newChildComponent}
+                  onChange={(e) => setNewChildComponent(e.target.value)}
+                  className="mb-2"
+                />
+                <select
+                  value={newChildIcon}
+                  onChange={(e) => setNewChildIcon(e.target.value as any)}
+                  className="mb-2 w-full rounded border border-sky-400 px-3 py-2 text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  aria-label="Select Child Icon"
+                >
+                  <option value="CreditCard">CreditCard</option>
+                  <option value="Zap">Zap</option>
+                  <option value="Home">Home</option>
+                </select>
+                <Button onClick={addPermissionChild} className="w-full" size="sm" variant="secondary">
+                  Add Child
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Collapsible Add New Action */}
+            <Collapsible>
+              <CollapsibleTrigger className="w-full cursor-pointer border border-gray-300 bg-emerald-200 py-2 px-4 rounded-md text-center font-semibold text-emerald-800 hover:bg-emerald-300 transition-colors">
+                Add New Action
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-4 border border-t-0 border-gray-300 rounded-b-md bg-emerald-50 space-y-3">
                 <select
                   value={selectedGroupOrChildForNewAction?.slug ?? ""}
                   onChange={(e) => {
@@ -579,7 +579,8 @@ const PermissionEditor = () => {
                     }
                     setSelectedGroupOrChildForNewAction(null);
                   }}
-                  className="w-full rounded border border-gray-300 px-3 py-2"
+                  className="w-full rounded border border-emerald-400 px-3 py-2 text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Select Group or Child for Action"
                 >
                   <option value="" disabled>
                     Select Group or Child
@@ -610,8 +611,8 @@ const PermissionEditor = () => {
                   onChange={(e) => setNewActionName(e.target.value)}
                 />
                 <label className="block mb-1 font-medium">Select API Resources</label>
-                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded p-2">
-                  {apiRoutes.length === 0 && <p>Loading routes...</p>}
+                <div className="max-h-40 overflow-y-auto border border-emerald-400 rounded p-2">
+                  {apiRoutes.length === 0 && <p className="text-sm text-muted-foreground">Loading routes...</p>}
                   {apiRoutes.map((route, i) => {
                     const checked = selectedApiResourcesForNewAction.some(
                       (res) => res.method === route.method && res.path === route.path
@@ -634,23 +635,25 @@ const PermissionEditor = () => {
                             }
                           }}
                         />
-                        <span>
+                        <span className="text-emerald-900">
                           <span className="font-semibold">{route.method}</span> {route.path}
                         </span>
                       </label>
                     );
                   })}
                 </div>
-                <Button onClick={addActionToGroupOrChild} className="w-full" size="sm">
+                <Button onClick={addActionToGroupOrChild} className="w-full" size="sm" variant="secondary">
                   Add Action
                 </Button>
-              </CardContent>
-            </Card>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* YAML Output */}
             <Card className="overflow-auto">
               <CardHeader>
-                <CardTitle>Generated YAML (Selected Permissions)</CardTitle>
+                <CardTitle className="text-center">Generated YAML (Selected Permissions)</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-auto max-h-[50vh] bg-gray-50 p-2 rounded whitespace-pre-wrap font-mono text-sm">
+              <CardContent className="overflow-auto max-h-[50vh] bg-gray-50 p-4 rounded font-mono text-sm whitespace-pre-wrap">
                 {generateYaml(permissions)}
               </CardContent>
             </Card>
