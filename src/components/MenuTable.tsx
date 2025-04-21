@@ -103,29 +103,24 @@ export function MenuTable({
     return <Icon className="inline-block h-5 w-5 mr-1 text-primary-foreground" />;
   };
 
-  // Helper to update group's name or slug
   const updateGroupField = (group: PermissionGroup, field: keyof PermissionGroup, val: string) => {
     const updated = { ...group, [field]: val };
     onEditGroup(updated);
   };
 
-  // Helper to update child's name or slug
   const updateChildField = (parentSlug: string, child: PermissionChild, field: keyof PermissionChild, val: string) => {
     const updated = { ...child, [field]: val };
     onEditChild(parentSlug, updated);
   };
 
-  // Handle removing child
   const handleRemoveChild = (parentSlug: string, childSlug: string) => {
     onRemoveChild(parentSlug, childSlug);
   };
 
-  // Handle removing action from group or child
   const handleRemoveAction = (groupSlug: string, actionCode: string) => {
     onRemoveAction(groupSlug, actionCode);
   };
 
-  // Action row component
   const ActionRow = ({
     action,
     groupSlug,
@@ -208,7 +203,6 @@ export function MenuTable({
 
               {expandedGroups.has(group.slug) && (
                 <>
-                  {/* Group actions */}
                   {group.actions && group.actions.length > 0 && (
                     <>
                       {group.actions.map((action) => (
@@ -217,7 +211,6 @@ export function MenuTable({
                     </>
                   )}
 
-                  {/* Children */}
                   {group.children && group.children.length > 0 && (
                     <>
                       {group.children.map((child) => (
@@ -242,7 +235,6 @@ export function MenuTable({
                             </TableCell>
                           </TableRow>
 
-                          {/* Child Actions */}
                           {child.actions && child.actions.length > 0 && (
                             <>
                               {child.actions.map((action) => (
