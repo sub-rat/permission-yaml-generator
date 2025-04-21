@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, ReactElement, ReactNode } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   TableHeader,
@@ -13,45 +14,9 @@ import { Checkbox } from "./ui/checkbox";
 import { CreditCard, Zap, Home, MoveVertical, Edit, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "./ui/dialog";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./ui/command";
+import { PermissionGroupComponent, ApiResource, PermissionAction, PermissionGroup, PermissionChild } from "./PermissionGroup";
 
-export type ApiResource = {
-  method: string;
-  path: string;
-  attribute?: string;
-};
-
-export type PermissionAction = {
-  code: string;
-  name: string;
-  resources: ApiResource[];
-};
-
-export type PermissionChild = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home";
-  router: string;
-  component: string;
-  sequence: number;
-  actions: PermissionAction[];
-};
-
-export type PermissionGroup = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home";
-  sequence: number;
-  actions?: PermissionAction[];
-  children?: PermissionChild[];
-};
-
-const iconMap = {
-  CreditCard: CreditCard,
-  Zap: Zap,
-  Home: Home,
-};
-
-type MenuTableProps = {
+export type MenuTableProps = {
   permissions: PermissionGroup[];
   selectedActions: Set<string>;
   onToggleAction: (groupSlug: string, actionCode: string, enabled: boolean) => void;
@@ -75,27 +40,6 @@ type MenuTableProps = {
   ) => void;
   apiResources: ApiResource[];
 };
-
-function EditableCell({
-  value,
-  onChange,
-  type = "text",
-  className = "",
-}: {
-  value: string;
-  onChange: (newVal: string) => void;
-  type?: string;
-  className?: string;
-}) {
-  return (
-    <Input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      type={type}
-      className={`text-sm p-1 ${className}`}
-    />
-  );
-}
 
 function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionGroup>) => void; onClose: () => void }) {
   const [name, setName] = useState("");
@@ -318,7 +262,7 @@ export function MenuTable({
   onReorderAction,
   apiResources,
 }: MenuTableProps) {
-  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
+  const [expandedGroupSlug, setExpandedGroupSlug] = React.useState<string | null>(null);
   const [addGroupOpen, setAddGroupOpen] = React.useState(false);
   const [addChildOpenForParent, setAddChildOpenForParent] = React.useState<string | null>(null);
   const [addActionOpenFor, setAddActionOpenFor] = React.useState<{ type: "group" | "child"; slug: string } | null>(null);
@@ -329,18 +273,19 @@ export function MenuTable({
     itemSlug: string;
   } | null>(null);
 
-  const onDragStartGroup = (e: React.DragEvent<HTMLTableRowElement>, slug: string) => {
+  // Drag and drop handlers for groups
+  const onDragStartGroup = (e: React.DragEvent<HTMLDivElement>, slug: string) => {
     setDragging({ type: "group", itemSlug: slug });
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", slug);
   };
 
-  const onDragOverGroup = (e: React.DragEvent<HTMLTableRowElement>) => {
+  const onDragOverGroup = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
-  const onDropGroup = (e: React.DragEvent<HTMLTableRowElement>, dropSlug: string) => {
+  const onDropGroup = (e: React.DragEvent<HTMLDivElement>, dropSlug: string) => {
     e.preventDefault();
     if (!dragging || dragging.type !== "group") return;
     if (dragging.itemSlug === dropSlug) return;
@@ -359,8 +304,9 @@ export function MenuTable({
     setDragging(null);
   };
 
+  // Drag and drop handlers for children
   const onDragStartChild = (
-    e: React.DragEvent<HTMLTableRowElement>,
+    e: React.DragEvent<HTMLDivElement>,
     parentSlug: string,
     childSlug: string
   ) => {
@@ -369,13 +315,13 @@ export function MenuTable({
     e.dataTransfer.setData("text/plain", childSlug);
   };
 
-  const onDragOverChild = (e: React.DragEvent<HTMLTableRowElement>) => {
+  const onDragOverChild = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
   const onDropChild = (
-    e: React.DragEvent<HTMLTableRowElement>,
+    e: React.DragEvent<HTMLDivElement>,
     parentSlug: string,
     dropChildSlug: string
   ) => {
@@ -399,8 +345,9 @@ export function MenuTable({
     setDragging(null);
   };
 
+  // Drag and drop handlers for actions
   const onDragStartAction = (
-    e: React.DragEvent<HTMLTableRowElement>,
+    e: React.DragEvent<HTMLDivElement>,
     parentType: "group" | "child",
     parentSlug: string,
     actionCode: string
@@ -410,13 +357,13 @@ export function MenuTable({
     e.dataTransfer.setData("text/plain", actionCode);
   };
 
-  const onDragOverAction = (e: React.DragEvent<HTMLTableRowElement>) => {
+  const onDragOverAction = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
   const onDropAction = (
-    e: React.DragEvent<HTMLTableRowElement>,
+    e: React.DragEvent<HTMLDivElement>,
     parentType: "group" | "child",
     parentSlug: string,
     dropActionCode: string
@@ -448,274 +395,140 @@ export function MenuTable({
     setDragging(null);
   };
 
-  const IconComponent = ({ icon }: { icon: "CreditCard" | "Zap" | "Home" }) => {
-    const Icon = iconMap[icon] || CreditCard;
-    return (
-      <Icon className="inline-block h-5 w-5 mr-1 text-primary-foreground" />
-    );
+  const [currentGroupForDetail, setCurrentGroupForDetail] = React.useState<PermissionGroup | null>(null);
+
+  const openGroupDetails = (group: PermissionGroup) => {
+    setCurrentGroupForDetail(group);
   };
 
-  const updateGroupField = (group: PermissionGroup, field: keyof PermissionGroup, val: string) => {
-    const updated = { ...group, [field]: val };
-    onEditGroup(updated);
+  const closeGroupDetails = () => {
+    setCurrentGroupForDetail(null);
   };
 
-  const updateChildField = (parentSlug: string, child: PermissionChild, field: keyof PermissionChild, val: string) => {
-    const updated = { ...child, [field]: val };
-    onEditChild(parentSlug, updated);
-  };
-
-  const handleRemoveChild = (parentSlug: string, childSlug: string) => {
-    onRemoveChild(parentSlug, childSlug);
-  };
-
-  const handleRemoveAction = (groupSlug: string, actionCode: string) => {
-    onRemoveAction(groupSlug, actionCode);
-  };
-
-  const ActionRow = ({
-    action,
-    groupSlug,
-    canEdit = true,
-  }: {
-    action: PermissionAction;
-    groupSlug: string;
-    canEdit?: boolean;
-  }) => {
-    const isChecked = selectedActions.has(`${groupSlug}:${action.code}`);
-
-    return (
-      <TableRow
-        draggable
-        onDragStart={(e) => onDragStartAction(e, groupSlug.includes(":") ? "child" : "group", groupSlug, action.code)}
-        onDragOver={onDragOverAction}
-        onDrop={(e) => onDropAction(e, groupSlug.includes(":") ? "child" : "group", groupSlug, action.code)}
-        className="cursor-move"
-      >
-        <TableCell className="pl-12 text-center">{action.code}</TableCell>
-        <TableCell>{action.name}</TableCell>
-        <TableCell>
-          {action.resources.length}
-          {action.resources.length === 1 ? " resource" : " resources"}
-        </TableCell>
-        <TableCell>
-          {canEdit && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleRemoveAction(groupSlug, action.code)}
-              title="Remove action"
-              className="inline-flex items-center space-x-1"
-            >
-              <Trash2 size={14} />
-              <span>Remove</span>
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-    );
-  };
-
-  return (
-    <div className="w-full overflow-auto">
-      <div className="mb-2 flex items-center justify-between">
+  // Render for groups list on left side
+  const renderGroupList = () => (
+    <div className="max-h-[75vh] w-72 min-w-[18rem] overflow-auto border-r bg-gray-50 dark:bg-gray-800 p-2">
+      <div className="flex justify-between mb-2">
+        <h2 className="text-lg font-semibold">Permission Groups</h2>
         <Dialog open={addGroupOpen} onOpenChange={setAddGroupOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="inline-flex items-center space-x-2">
+            <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
               <Plus size={16} />
               <span>Add Group</span>
             </Button>
           </DialogTrigger>
-          {addGroupOpen && (
-            <AddGroupDialog
-              onAdd={onAddGroup}
-              onClose={() => setAddGroupOpen(false)}
-            />
-          )}
+          {addGroupOpen && <AddGroupDialog onAdd={onAddGroup} onClose={() => setAddGroupOpen(false)} />}
         </Dialog>
-
-        {expandedGroups.size === 1 && (
-          [...expandedGroups].map((slug) => (
-            <Dialog key="add-child-dialog" open={addChildOpenForParent === slug} onOpenChange={(open) => setAddChildOpenForParent(open ? slug : null)}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="inline-flex items-center space-x-2">
-                  <Plus size={16} />
-                  <span>Add Child to {slug}</span>
-                </Button>
-              </DialogTrigger>
-              {addChildOpenForParent === slug && (
-                <AddChildDialog
-                  parentSlug={slug}
-                  onAdd={onAddChild}
-                  onClose={() => setAddChildOpenForParent(null)}
-                />
-              )}
-            </Dialog>
-          ))
-        )}
-
-        {expandedGroups.size === 1 && (
-          [...expandedGroups].map((slug) => {
-            let isGroup = permissions.some((g) => g.slug === slug);
-            let isChild = !isGroup;
-            const type = isGroup ? "group" : "child";
-
-            return (
-              <Dialog
-                key="add-action-dialog"
-                open={addActionOpenFor?.slug === slug}
-                onOpenChange={(open) => setAddActionOpenFor(open ? { type, slug } : null)}
-              >
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="inline-flex items-center space-x-2">
-                    <Plus size={16} />
-                    <span>Add Action for {slug}</span>
-                  </Button>
-                </DialogTrigger>
-                {addActionOpenFor?.slug === slug && (
-                  <AddActionDialog
-                    targetSlug={slug}
-                    targetType={type}
-                    apiResources={apiResources}
-                    onAdd={onAddAction}
-                    onClose={() => setAddActionOpenFor(null)}
-                  />
-                )}
-              </Dialog>
-            );
-          })
-        )}
       </div>
+      {permissions.length === 0 && (
+        <p className="text-center text-muted-foreground py-8">No permission groups available.</p>
+      )}
+      <div className="space-y-1">
+        {permissions
+          .slice()
+          .sort((a, b) => a.sequence - b.sequence)
+          .map((group) => (
+            <div
+              key={group.slug}
+              draggable
+              onDragStart={(e) => onDragStartGroup(e, group.slug)}
+              onDragOver={onDragOverGroup}
+              onDrop={(e) => onDropGroup(e, group.slug)}
+              className={`cursor-move rounded-md p-2 ${
+                currentGroupForDetail?.slug === group.slug
+                  ? "bg-indigo-100 dark:bg-indigo-900 font-semibold"
+                  : "hover:bg-indigo-50 dark:hover:bg-indigo-950"
+              }`}
+              onClick={() => openGroupDetails(group)}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  {React.createElement(
+                    {
+                      CreditCard: CreditCard,
+                      Zap: Zap,
+                      Home: Home,
+                    }[group.icon] || CreditCard,
+                    { className: "h-5 w-5 text-primary-foreground" }
+                  )}
+                  <span>{group.name}</span>
+                </div>
+                <span className="text-sm text-muted-foreground select-none">
+                  Seq: {group.sequence}
+                </span>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
 
-      <Table className="table-auto min-w-full">
-        <TableHeader>
-          <TableRow>
-            <TableHead style={{ width: "70px" }}>Seq</TableHead>
-            <TableHead style={{ width: "60px" }}></TableHead>
-            <TableHead style={{ width: "150px" }}>Code / Name</TableHead>
-            <TableHead style={{ width: "220px" }}>Slug / Action Name</TableHead>
-            <TableHead style={{ width: "180px" }}>Associated Resources / Children</TableHead>
-            <TableHead style={{ width: "95px" }}>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {permissions
-            .slice()
-            .sort((a, b) => a.sequence - b.sequence)
-            .map((group) => (
-              <React.Fragment key={group.slug}>
-                <TableRow
-                  draggable
-                  onDragStart={(e) => onDragStartGroup(e, group.slug)}
-                  onDragOver={onDragOverGroup}
-                  onDrop={(e) => onDropGroup(e, group.slug)}
-                  className="cursor-move bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                >
-                  <TableCell className="text-center font-semibold">{group.sequence}</TableCell>
-                  <TableCell className="text-center">
-                    <button
-                      aria-label={expandedGroups.has(group.slug) ? "Collapse group" : "Expand group"}
-                      className="text-lg font-bold w-6 h-6 flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (expandedGroups.has(group.slug)) {
-                          const newSet = new Set(expandedGroups);
-                          newSet.delete(group.slug);
-                          setExpandedGroups(newSet);
-                        } else {
-                          setExpandedGroups(new Set([group.slug]));
-                        }
-                      }}
-                    >
-                      {expandedGroups.has(group.slug) ? "−" : "+"}
-                    </button>
-                  </TableCell>
-                  <TableCell className="flex items-center space-x-2 font-semibold">
-                    <IconComponent icon={group.icon} />
-                    <EditableCell
-                      value={group.name}
-                      onChange={(val) => updateGroupField(group, "name", val)}
-                      className="max-w-[180px]"
-                    />
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500 select-text max-w-[140px] truncate">{group.slug}</TableCell>
-                  <TableCell>
-                    {group.children && group.children.length > 0
-                      ? group.children.length + " children"
-                      : group.actions && group.actions.length > 0
-                        ? group.actions.length + (group.actions.length === 1 ? " action" : " actions")
-                        : "No children or actions"}
-                  </TableCell>
-                  <TableCell>
-                    {/* No direct remove for group here to avoid accidental deletion */}
-                    {/* Could add edit/remove modals in future */}
-                  </TableCell>
-                </TableRow>
+  // Render the selected group's permission details on right side
+  const renderGroupDetails = () => {
+    if (!currentGroupForDetail) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+          <p>Select a group to view its details</p>
+        </div>
+      );
+    }
 
-                {expandedGroups.has(group.slug) && (
-                  <>
-                    {group.actions?.slice().sort((a, b) => 0).map((action) => (
-                      <ActionRow key={`group-action-${action.code}`} groupSlug={group.slug} action={action} />
-                    ))}
+    return (
+      <div className="max-h-[75vh] overflow-auto flex-1 p-4 bg-gray-50 dark:bg-gray-900 rounded border">
+        <PermissionGroupComponent
+          group={currentGroupForDetail}
+          onToggleAction={onToggleAction}
+          selectedActions={selectedActions}
+        />
+        <div className="mt-4 flex space-x-2">
+          <Dialog open={addChildOpenForParent === currentGroupForDetail.slug} onOpenChange={setAddChildOpenForParent}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
+                <Plus size={16} />
+                <span>Add Child</span>
+              </Button>
+            </DialogTrigger>
+            {addChildOpenForParent === currentGroupForDetail.slug && (
+              <AddChildDialog
+                parentSlug={currentGroupForDetail.slug}
+                onAdd={onAddChild}
+                onClose={() => setAddChildOpenForParent(null)}
+              />
+            )}
+          </Dialog>
 
-                    {group.children?.slice().sort((a, b) => a.sequence - b.sequence).map((child) => (
-                      <React.Fragment key={child.slug}>
-                        <TableRow
-                          draggable
-                          onDragStart={(e) => onDragStartChild(e, group.slug, child.slug)}
-                          onDragOver={onDragOverChild}
-                          onDrop={(e) => onDropChild(e, group.slug, child.slug)}
-                          className="cursor-move bg-gray-50 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                        >
-                          <TableCell className="text-center font-medium">{child.sequence}</TableCell>
-                          <TableCell className="text-center">
-                            <IconComponent icon={child.icon} />
-                          </TableCell>
-                          <TableCell className="font-medium max-w-[180px]">
-                            <EditableCell value={child.name} onChange={(val) => updateChildField(group.slug, child, "name", val)} />
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-500 select-text max-w-[140px] truncate">{child.slug}</TableCell>
-                          <TableCell>
-                            {child.actions && child.actions.length > 0
-                              ? child.actions.length + (child.actions.length === 1 ? " action" : " actions")
-                              : "No actions"}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleRemoveChild(group.slug, child.slug)}
-                              title="Remove child"
-                              className="inline-flex items-center space-x-1"
-                            >
-                              <Trash2 size={14} />
-                              <span>Remove</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+          <Dialog
+            open={addActionOpenFor?.slug === currentGroupForDetail.slug}
+            onOpenChange={(open) =>
+              setAddActionOpenFor(open ? { type: "group", slug: currentGroupForDetail.slug } : null)
+            }
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
+                <Plus size={16} />
+                <span>Add Action</span>
+              </Button>
+            </DialogTrigger>
 
-                        {child.actions?.slice().sort((a, b) => 0).map((action) => (
-                          <ActionRow
-                            key={`child-action-${action.code}`}
-                            groupSlug={child.slug}
-                            action={action}
-                          />
-                        ))}
-                      </React.Fragment>
-                    ))}
-                  </>
-                )}
-              </React.Fragment>
-            ))}
-          {permissions.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                No menus/permissions available.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            {addActionOpenFor?.slug === currentGroupForDetail.slug && (
+              <AddActionDialog
+                targetSlug={currentGroupForDetail.slug}
+                targetType="group"
+                apiResources={apiResources}
+                onAdd={onAddAction}
+                onClose={() => setAddActionOpenFor(null)}
+              />
+            )}
+          </Dialog>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex w-full rounded border bg-white shadow-sm">
+      {renderGroupList()}
+      {renderGroupDetails()}
     </div>
   );
 }
