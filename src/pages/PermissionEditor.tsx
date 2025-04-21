@@ -417,6 +417,75 @@ const PermissionEditor = () => {
     value: route,
   }));
 
+  const onEditGroup = (updatedGroup: PermissionGroupWithChildren) => {
+    setPermissions((prev) =>
+      prev.map((grp) => (grp.slug === updatedGroup.slug ? { ...grp, ...updatedGroup } : grp))
+    );
+  };
+
+  const onEditChild = (parentSlug: string, updatedChild: PermissionChild) => {
+    setPermissions((prev) =>
+      prev.map((grp) => {
+        if (grp.slug === parentSlug) {
+          const updatedChildren = grp.children?.map((child) =>
+            child.slug === updatedChild.slug ? { ...child, ...updatedChild } : child
+          );
+          return { ...grp, children: updatedChildren };
+        }
+        return grp;
+      })
+    );
+  };
+
+  const onRemoveAction = (groupOrChildSlug: string, actionCode: string) => {
+    setPermissions((prev) =>
+      prev.map((group) => {
+        if (group.slug === groupOrChildSlug) {
+          return {
+            ...group,
+            actions: group.actions?.filter((a) => a.code !== actionCode),
+          };
+        }
+        if (group.children) {
+          const updatedChildren = group.children.map((child) => {
+            if (child.slug === groupOrChildSlug) {
+              return {
+                ...child,
+                actions: child.actions.filter((a) => a.code !== actionCode),
+              };
+            }
+            return child;
+          });
+          return { ...group, children: updatedChildren };
+        }
+        return group;
+      })
+    );
+
+    setSelectedActions((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(`${groupOrChildSlug}:${actionCode}`);
+      return newSet;
+    });
+
+    toast({ title: "Action removed", description: `Action "${actionCode}" removed successfully.` });
+  };
+
+  const onRemoveChild = (parentSlug: string, childSlug: string) => {
+    setPermissions((prev) =>
+      prev.map((group) => {
+        if (group.slug === parentSlug) {
+          return {
+            ...group,
+            children: group.children?.filter((child) => child.slug !== childSlug),
+          };
+        }
+        return group;
+      })
+    );
+    toast({ title: "Child removed", description: `Child "${childSlug}" removed successfully.` });
+  };
+
   return (
     <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
       <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">Permission Editor</h1>
