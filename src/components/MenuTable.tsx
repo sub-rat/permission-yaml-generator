@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from "./ui/table";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Checkbox } from "./ui/checkbox";
 import { CreditCard, Zap, Home } from "lucide-react";
 
@@ -153,7 +152,7 @@ export function MenuTable({
         </TableCell>
         <TableCell>
           {canEdit && (
-            <Button size="sm" variant="destructive" onClick={() => handleRemoveAction(groupSlug, action.code)}>
+            <Button size="sm" variant="destructive" onClick={() => handleRemoveAction(groupSlug, action.code)} title="Remove action">
               Remove
             </Button>
           )}
