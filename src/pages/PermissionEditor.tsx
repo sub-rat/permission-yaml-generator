@@ -6,9 +6,18 @@ import { TooltipProvider } from "../components/ui/tooltip";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../components/ui/collapsible";
-import { MenuTable, PermissionGroup, PermissionChild, PermissionAction, ApiResource } from "../components/MenuTable";
+import {
+  MenuTable,
+  PermissionGroup,
+  PermissionChild,
+  PermissionAction,
+  ApiResource,
+} from "../components/MenuTable";
 
-type PermissionGroupWithChildren = PermissionGroup & { children?: PermissionChild[]; actions?: PermissionAction[] };
+type PermissionGroupWithChildren = PermissionGroup & {
+  children?: PermissionChild[];
+  actions?: PermissionAction[];
+};
 
 const dummyApiRoutes: ApiResource[] = [
   { method: "GET", path: "/api/v1/roles" },
@@ -51,7 +60,10 @@ const dummyPermissionData: PermissionGroupWithChildren[] = [
           {
             code: "add",
             name: "Add Roles",
-            resources: [{ method: "GET", path: "/api/v1/roles" }, { method: "POST", path: "/api/v1/users" }],
+            resources: [
+              { method: "GET", path: "/api/v1/roles" },
+              { method: "POST", path: "/api/v1/users" },
+            ],
           },
           {
             code: "edit",
@@ -142,9 +154,7 @@ const PermissionEditor = () => {
         }
       }
       if (Array.isArray(value)) {
-        return (
-          "\n" + value.map((v) => `${space}- ${yamlString(v, indent + 1).trimStart()}`).join("\n")
-        );
+        return "\n" + value.map((v) => `${space}- ${yamlString(v, indent + 1).trimStart()}`).join("\n");
       }
       if (typeof value === "object" && value !== null) {
         return (
@@ -187,7 +197,10 @@ const PermissionEditor = () => {
             slug: c.slug,
             icon: c.icon,
             sequence: c.sequence,
-            actions: c.actions && filterActions(c.actions, c.slug).length > 0 ? filterActions(c.actions, c.slug) : undefined,
+            actions:
+              c.actions && filterActions(c.actions, c.slug).length > 0
+                ? filterActions(c.actions, c.slug)
+                : undefined,
             children: undefined,
           }))
           .filter((c) => c.actions || c.children);
@@ -218,10 +231,11 @@ const PermissionEditor = () => {
       const normalizedGroups = (parsed as any[]).map((group) => ({
         ...group,
         actions: group.actions ?? [],
-        children: group.children?.map((child: any) => ({
-          ...child,
-          actions: child.actions ?? [],
-        })) ?? [],
+        children:
+          group.children?.map((child: any) => ({
+            ...child,
+            actions: child.actions ?? [],
+          })) ?? [],
       })) as PermissionGroupWithChildren[];
       setPermissions(normalizedGroups);
 
@@ -248,76 +262,46 @@ const PermissionEditor = () => {
     setYamlInput(yamlStr);
   }, [permissions, selectedActions]);
 
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupSlug, setNewGroupSlug] = useState("");
-  const [newGroupIcon, setNewGroupIcon] = useState<PermissionGroupWithChildren["icon"]>("CreditCard");
-
-  const [currentParentSlugForChild, setCurrentParentSlugForChild] = useState<string | null>(null);
-  const [newChildName, setNewChildName] = useState("");
-  const [newChildSlug, setNewChildSlug] = useState("");
-  const [newChildIcon, setNewChildIcon] = useState<PermissionChild["icon"]>("CreditCard");
-  const [newChildRouter, setNewChildRouter] = useState("");
-  const [newChildComponent, setNewChildComponent] = useState("");
-
-  const [newActionCode, setNewActionCode] = useState("");
-  const [newActionName, setNewActionName] = useState("");
-  const [selectedGroupOrChildForNewAction, setSelectedGroupOrChildForNewAction] = useState<{
-    type: "group" | "child";
-    slug: string;
-  } | null>(null);
-
-  const [selectedApiResourcesForNewAction, setSelectedApiResourcesForNewAction] = useState<ApiResource[]>([]);
-
-  const addPermissionGroup = () => {
-    if (!newGroupName.trim() || !newGroupSlug.trim()) {
-      toast({
-        title: "Validation error",
-        description: "Name and Slug are required for new group",
-      });
+  const addPermissionGroup = (group: Partial<PermissionGroup>) => {
+    if (!group.name || !group.slug) {
+      toast({ title: "Validation error", description: "Group name and slug required." });
       return;
     }
-    if (permissions.find((g) => g.slug === newGroupSlug.trim())) {
-      toast({ title: "Validation error", description: "Group slug already exists" });
+    if (permissions.find((g) => g.slug === group.slug)) {
+      toast({ title: "Validation error", description: "Group slug already exists." });
       return;
     }
     const newGroup: PermissionGroupWithChildren = {
-      name: newGroupName.trim(),
-      slug: newGroupSlug.trim(),
-      icon: newGroupIcon,
+      name: group.name,
+      slug: group.slug,
+      icon: group.icon || "CreditCard",
       sequence: permissions.length + 1,
       children: [],
       actions: [],
     };
     setPermissions((prev) => [...prev, newGroup]);
-    setNewGroupName("");
-    setNewGroupSlug("");
-    toast({ title: "Group added", description: `"${newGroup.name}" was added.` });
+    toast({ title: "Group added", description: `"${group.name}" was added.` });
   };
 
-  const addPermissionChild = () => {
-    if (!currentParentSlugForChild) {
-      toast({ title: "Internal error", description: "No parent group selected" });
-      return;
-    }
-    if (!newChildName.trim() || !newChildSlug.trim() || !newChildRouter.trim() || !newChildComponent.trim()) {
-      toast({ title: "Validation error", description: "All fields are required for child" });
+  const addPermissionChild = (parentSlug: string, child: Partial<PermissionChild>) => {
+    if (!parentSlug || !child.name || !child.slug || !child.router || !child.component) {
+      toast({ title: "Validation error", description: "Child fields are all required." });
       return;
     }
     setPermissions((prev) => {
-      const groupIndex = prev.findIndex((g) => g.slug === currentParentSlugForChild);
+      const groupIndex = prev.findIndex((g) => g.slug === parentSlug);
       if (groupIndex === -1) return prev;
-
       const group = prev[groupIndex];
-      if (group.children?.find((c) => c.slug === newChildSlug.trim())) {
-        toast({ title: "Validation error", description: "Child slug already exists" });
+      if (group.children?.find((c) => c.slug === child.slug)) {
+        toast({ title: "Validation error", description: "Child slug already exists." });
         return prev;
       }
       const newChild: PermissionChild = {
-        name: newChildName.trim(),
-        slug: newChildSlug.trim(),
-        icon: newChildIcon,
-        router: newChildRouter.trim(),
-        component: newChildComponent.trim(),
+        name: child.name,
+        slug: child.slug,
+        icon: child.icon || "CreditCard",
+        router: child.router,
+        component: child.component,
         sequence: (group.children?.length ?? 0) + 1,
         actions: [],
       };
@@ -327,65 +311,42 @@ const PermissionEditor = () => {
       };
       const updatedPermissions = [...prev];
       updatedPermissions[groupIndex] = updatedGroup;
+      toast({ title: "Child added", description: `Child "${child.name}" added successfully.` });
       return updatedPermissions;
     });
-    setNewChildName("");
-    setNewChildSlug("");
-    setNewChildRouter("");
-    setNewChildComponent("");
-    setNewChildIcon("CreditCard");
-    setCurrentParentSlugForChild(null);
-    toast({ title: "Child added", description: `Child "${newChildName.trim()}" added successfully.` });
   };
 
-  const addActionToGroupOrChild = () => {
-    if (!selectedGroupOrChildForNewAction) {
-      toast({ title: "Validation error", description: "Select group or child for new action" });
+  const addActionToGroupOrChild = (
+    targetType: "group" | "child",
+    targetSlug: string,
+    action: PermissionAction
+  ) => {
+    if (!action.code || !action.name || action.resources.length === 0) {
+      toast({ title: "Validation error", description: "Action code/name/resources required." });
       return;
     }
-    if (!newActionCode.trim() || !newActionName.trim()) {
-      toast({ title: "Validation error", description: "Action code and name are required" });
-      return;
-    }
-    if (selectedApiResourcesForNewAction.length === 0) {
-      toast({ title: "Validation error", description: "Select at least one API resource for the action" });
-      return;
-    }
-
     setPermissions((prev) => {
-      const updated = prev.map((group) => {
-        if (selectedGroupOrChildForNewAction.type === "group" && group.slug === selectedGroupOrChildForNewAction.slug) {
-          const exists = group.actions?.find((a) => a.code === newActionCode.trim());
-          if (exists) {
+      return prev.map((group) => {
+        if (targetType === "group" && group.slug === targetSlug) {
+          if (group.actions?.find((a) => a.code === action.code)) {
             toast({ title: "Validation error", description: "Action code already exists in group" });
             return group;
           }
-          const newAction: PermissionAction = {
-            code: newActionCode.trim(),
-            name: newActionName.trim(),
-            resources: selectedApiResourcesForNewAction,
-          };
           return {
             ...group,
-            actions: [...(group.actions ?? []), newAction],
+            actions: [...(group.actions ?? []), action],
           };
         }
-        if (selectedGroupOrChildForNewAction.type === "child" && group.children) {
+        if (targetType === "child" && group.children) {
           const newChildren = group.children.map((child) => {
-            if (child.slug === selectedGroupOrChildForNewAction.slug) {
-              const exists = child.actions.find((a) => a.code === newActionCode.trim());
-              if (exists) {
+            if (child.slug === targetSlug) {
+              if (child.actions.find((a) => a.code === action.code)) {
                 toast({ title: "Validation error", description: "Action code already exists in child" });
                 return child;
               }
-              const newAction: PermissionAction = {
-                code: newActionCode.trim(),
-                name: newActionName.trim(),
-                resources: selectedApiResourcesForNewAction,
-              };
               return {
                 ...child,
-                actions: [...child.actions, newAction],
+                actions: [...child.actions, action],
               };
             }
             return child;
@@ -394,14 +355,44 @@ const PermissionEditor = () => {
         }
         return group;
       });
-      return updated;
     });
+    toast({ title: "Action added", description: `Action "${action.code}" added successfully.` });
+  };
 
-    setNewActionCode("");
-    setNewActionName("");
-    setSelectedGroupOrChildForNewAction(null);
-    setSelectedApiResourcesForNewAction([]);
-    toast({ title: "Action added", description: `Action "${newActionCode.trim()}" added successfully.` });
+  const reorderGroups = (newGroups: PermissionGroupWithChildren[]) => {
+    setPermissions(newGroups);
+  };
+
+  const reorderChildren = (parentSlug: string, newChildren: PermissionChild[]) => {
+    setPermissions((prev) =>
+      prev.map((group) =>
+        group.slug === parentSlug ? { ...group, children: newChildren } : group
+      )
+    );
+  };
+
+  const reorderActions = (
+    parentType: "group" | "child",
+    parentSlug: string,
+    newActions: PermissionAction[]
+  ) => {
+    setPermissions((prev) =>
+      prev.map((group) => {
+        if (parentType === "group" && group.slug === parentSlug) {
+          return { ...group, actions: newActions };
+        }
+        if (parentType === "child" && group.children) {
+          const newChildren = group.children.map((child) => {
+            if (child.slug === parentSlug) {
+              return { ...child, actions: newActions };
+            }
+            return child;
+          });
+          return { ...group, children: newChildren };
+        }
+        return group;
+      })
+    );
   };
 
   const onToggleActionSelected = useCallback(
@@ -410,12 +401,6 @@ const PermissionEditor = () => {
     },
     [toggleAction]
   );
-
-  const apiRouteOptions = dummyApiRoutes.map((route, idx) => ({
-    id: idx,
-    label: `${route.method} ${route.path}`,
-    value: route,
-  }));
 
   const onEditGroup = (updatedGroup: PermissionGroupWithChildren) => {
     setPermissions((prev) =>
@@ -488,208 +473,30 @@ const PermissionEditor = () => {
 
   return (
     <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
-      <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">Permission Editor</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">
+        Permission Editor
+      </h1>
       <TooltipProvider>
         <div className="flex flex-col md:flex-row gap-8">
-          <div className="md:w-1/2 overflow-y-auto max-h-[70vh] p-2 border rounded bg-gray-50 dark:bg-gray-800">
+          <div className="md:w-full overflow-y-auto max-h-[75vh] p-2 border rounded bg-gray-50 dark:bg-gray-800">
             <MenuTable
               permissions={permissions}
               selectedActions={selectedActions}
-              onToggleAction={toggleAction}
+              onToggleAction={onToggleActionSelected}
               onEditGroup={onEditGroup}
               onEditChild={onEditChild}
               onRemoveAction={onRemoveAction}
               onRemoveChild={onRemoveChild}
+              onAddGroup={addPermissionGroup}
+              onAddChild={addPermissionChild}
+              onAddAction={addActionToGroupOrChild}
+              onReorderGroup={reorderGroups}
+              onReorderChild={reorderChildren}
+              onReorderAction={reorderActions}
+              apiResources={apiRoutes}
             />
           </div>
-          <div className="md:w-1/2 flex flex-col gap-6 overflow-y-auto max-h-[70vh] p-4 border rounded bg-gray-50 dark:bg-gray-900">
-            <Collapsible defaultOpen>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-purple-400 bg-purple-200 py-2 px-4 rounded-md text-center font-semibold text-purple-800 hover:bg-purple-300 transition-colors">
-                Add New Permission Group
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-purple-400 rounded-b-md bg-purple-50 space-y-3">
-                <Input
-                  type="text"
-                  placeholder="Group Name"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="mb-2"
-                />
-                <Input
-                  type="text"
-                  placeholder="Group Slug"
-                  value={newGroupSlug}
-                  onChange={(e) => setNewGroupSlug(e.target.value)}
-                  className="mb-2"
-                />
-                <select
-                  value={newGroupIcon}
-                  onChange={(e) => setNewGroupIcon(e.target.value as any)}
-                  className="mb-2 w-full rounded border border-purple-400 px-3 py-2 text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  aria-label="Select Group Icon"
-                >
-                  <option value="CreditCard">CreditCard</option>
-                  <option value="Zap">Zap</option>
-                  <option value="Home">Home</option>
-                </select>
-                <Button onClick={addPermissionGroup} className="w-full" size="sm" variant="secondary">
-                  Add Group
-                </Button>
-              </CollapsibleContent>
-            </Collapsible>
-            <Collapsible>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-sky-400 bg-sky-200 py-2 px-4 rounded-md text-center font-semibold text-sky-800 hover:bg-sky-300 transition-colors">
-                Add New Child Permission
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-sky-400 rounded-b-md bg-sky-50 space-y-3">
-                <select
-                  value={currentParentSlugForChild ?? ""}
-                  onChange={(e) => setCurrentParentSlugForChild(e.target.value)}
-                  className="mb-2 w-full rounded border border-sky-400 px-3 py-2 text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  aria-label="Select Parent Group"
-                >
-                  <option value="" disabled>
-                    Select Parent Group
-                  </option>
-                  {permissions.map((grp) => (
-                    <option key={grp.slug} value={grp.slug}>
-                      {grp.name}
-                    </option>
-                  ))}
-                </select>
-                <Input
-                  type="text"
-                  placeholder="Child Name"
-                  value={newChildName}
-                  onChange={(e) => setNewChildName(e.target.value)}
-                  className="mb-2"
-                />
-                <Input
-                  type="text"
-                  placeholder="Child Slug"
-                  value={newChildSlug}
-                  onChange={(e) => setNewChildSlug(e.target.value)}
-                  className="mb-2"
-                />
-                <Input
-                  type="text"
-                  placeholder="Route Path"
-                  value={newChildRouter}
-                  onChange={(e) => setNewChildRouter(e.target.value)}
-                  className="mb-2"
-                />
-                <Input
-                  type="text"
-                  placeholder="Component Path"
-                  value={newChildComponent}
-                  onChange={(e) => setNewChildComponent(e.target.value)}
-                  className="mb-2"
-                />
-                <select
-                  value={newChildIcon}
-                  onChange={(e) => setNewChildIcon(e.target.value as any)}
-                  className="mb-2 w-full rounded border border-sky-400 px-3 py-2 text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  aria-label="Select Child Icon"
-                >
-                  <option value="CreditCard">CreditCard</option>
-                  <option value="Zap">Zap</option>
-                  <option value="Home">Home</option>
-                </select>
-                <Button onClick={addPermissionChild} className="w-full" size="sm" variant="secondary">
-                  Add Child
-                </Button>
-              </CollapsibleContent>
-            </Collapsible>
-            <Collapsible>
-              <CollapsibleTrigger className="w-full cursor-pointer border border-emerald-400 bg-emerald-200 py-2 px-4 rounded-md text-center font-semibold text-emerald-800 hover:bg-emerald-300 transition-colors">
-                Add New Action
-              </CollapsibleTrigger>
-              <CollapsibleContent className="p-4 border border-t-0 border-emerald-400 rounded-b-md bg-emerald-50 space-y-3">
-                <select
-                  value={selectedGroupOrChildForNewAction?.slug ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    let foundGroup = permissions.find((g) => g.slug === val);
-                    if (foundGroup) {
-                      setSelectedGroupOrChildForNewAction({ type: "group", slug: val });
-                      return;
-                    }
-                    for (const g of permissions) {
-                      if (g.children && g.children.find((c) => c.slug === val)) {
-                        setSelectedGroupOrChildForNewAction({ type: "child", slug: val });
-                        return;
-                      }
-                    }
-                    setSelectedGroupOrChildForNewAction(null);
-                  }}
-                  className="w-full rounded border border-emerald-400 px-3 py-2 text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  aria-label="Select Group or Child for Action"
-                >
-                  <option value="" disabled>
-                    Select Group or Child
-                  </option>
-                  {permissions.map((grp) => (
-                    <option key={`group-${grp.slug}`} value={grp.slug}>
-                      {grp.name} (Group)
-                    </option>
-                  ))}
-                  {permissions.flatMap((grp) =>
-                    grp.children?.map((child) => (
-                      <option key={`child-${child.slug}`} value={child.slug}>
-                        {child.name} (Child)
-                      </option>
-                    )) ?? []
-                  )}
-                </select>
-                <Input
-                  type="text"
-                  placeholder="Action Code"
-                  value={newActionCode}
-                  onChange={(e) => setNewActionCode(e.target.value)}
-                />
-                <Input
-                  type="text"
-                  placeholder="Action Name"
-                  value={newActionName}
-                  onChange={(e) => setNewActionName(e.target.value)}
-                />
-                <label className="block mb-1 font-medium">Select API Resources</label>
-                <div className="max-h-40 overflow-y-auto border border-emerald-400 rounded p-2">
-                  {apiRoutes.length === 0 && <p className="text-sm text-muted-foreground">Loading routes...</p>}
-                  {apiRoutes.map((route, i) => {
-                    const checked = selectedApiResourcesForNewAction.some(
-                      (res) => res.method === route.method && res.path === route.path
-                    );
-                    return (
-                      <label
-                        key={`${route.method}-${route.path}-${i}`}
-                        className="flex items-center space-x-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedApiResourcesForNewAction((old) => [...old, route]);
-                            } else {
-                              setSelectedApiResourcesForNewAction((old) =>
-                                old.filter((r) => !(r.method === route.method && r.path === route.path))
-                              );
-                            }
-                          }}
-                        />
-                        <span className="text-emerald-900">
-                          <span className="font-semibold">{route.method}</span> {route.path}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <Button onClick={addActionToGroupOrChild} className="w-full" size="sm" variant="secondary">
-                  Add Action
-                </Button>
-              </CollapsibleContent>
-            </Collapsible>
+          <div className="md:w-96 flex flex-col gap-6 overflow-y-auto max-h-[75vh] p-4 border rounded bg-gray-50 dark:bg-gray-900">
             <Card className="mb-4 !p-4 bg-amber-50 dark:bg-amber-950">
               <CardHeader>
                 <CardTitle className="text-center">Load Permissions from YAML</CardTitle>
@@ -702,11 +509,7 @@ const PermissionEditor = () => {
                   placeholder="Paste permissions YAML here..."
                   spellCheck={false}
                 />
-                <Button
-                  onClick={loadPermissionsFromYaml}
-                  className="mt-2 w-full"
-                  size="sm"
-                >
+                <Button onClick={loadPermissionsFromYaml} className="mt-2 w-full" size="sm">
                   Load YAML
                 </Button>
               </CardContent>
