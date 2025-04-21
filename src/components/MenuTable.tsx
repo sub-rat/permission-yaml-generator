@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, ReactElement, ReactNode } from "react";
 import {
   Table,
   TableHeader,
@@ -221,11 +221,12 @@ function AddActionDialog({
   const [selectedResources, setSelectedResources] = React.useState<ApiResource[]>([]);
   const [search, setSearch] = React.useState("");
 
-  const filteredResources = search.trim()
-    ? apiResources.filter((res) =>
-        `${res.method} ${res.path}`.toLowerCase().includes(search.toLowerCase())
-      )
-    : apiResources;
+  const filteredResources = React.useMemo(() => {
+    if (!search.trim()) return apiResources;
+    return apiResources.filter((res) =>
+      `${res.method} ${res.path}`.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search, apiResources]);
 
   const toggleResource = (res: ApiResource) => {
     const exists = selectedResources.find(
@@ -317,12 +318,12 @@ export function MenuTable({
   onReorderAction,
   apiResources,
 }: MenuTableProps) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [addGroupOpen, setAddGroupOpen] = useState(false);
-  const [addChildOpenForParent, setAddChildOpenForParent] = useState<string | null>(null);
-  const [addActionOpenFor, setAddActionOpenFor] = useState<{ type: "group" | "child"; slug: string } | null>(null);
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
+  const [addGroupOpen, setAddGroupOpen] = React.useState(false);
+  const [addChildOpenForParent, setAddChildOpenForParent] = React.useState<string | null>(null);
+  const [addActionOpenFor, setAddActionOpenFor] = React.useState<{ type: "group" | "child"; slug: string } | null>(null);
 
-  const [dragging, setDragging] = useState<{
+  const [dragging, setDragging] = React.useState<{
     type: "group" | "child" | "action";
     parentSlug?: string;
     itemSlug: string;
