@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableHeader,
@@ -11,28 +11,55 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
-import { CreditCard, Zap, Home, MoveVertical, Edit, Plus, Trash2 } from "lucide-react";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "./ui/dialog";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./ui/command";
-import { PermissionGroupComponent, ApiResource, PermissionAction, PermissionGroup, PermissionChild } from "./PermissionGroup";
+import { CreditCard, Zap, Home, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "./ui/command";
+import {
+  PermissionGroup as PermissionGroupType,
+  PermissionChild,
+  PermissionAction,
+  ApiResource,
+} from "./PermissionGroup";
+
 
 export type MenuTableProps = {
-  permissions: PermissionGroup[];
+  permissions: PermissionGroupType[];
   selectedActions: Set<string>;
-  onToggleAction: (groupSlug: string, actionCode: string, enabled: boolean) => void;
-  onEditGroup: (updatedGroup: PermissionGroup) => void;
+  onToggleAction: (
+    groupSlug: string,
+    actionCode: string,
+    enabled: boolean
+  ) => void;
+  onEditGroup: (updatedGroup: PermissionGroupType) => void;
   onEditChild: (parentSlug: string, updatedChild: PermissionChild) => void;
   onRemoveAction: (groupSlug: string, actionCode: string) => void;
   onRemoveChild: (parentSlug: string, childSlug: string) => void;
-  onAddGroup: (group: Partial<PermissionGroup>) => void;
+  onAddGroup: (group: Partial<PermissionGroupType>) => void;
   onAddChild: (parentSlug: string, child: Partial<PermissionChild>) => void;
   onAddAction: (
     targetType: "group" | "child",
     targetSlug: string,
     action: PermissionAction
   ) => void;
-  onReorderGroup: (reorderedGroups: PermissionGroup[]) => void;
-  onReorderChild: (parentSlug: string, reorderedChildren: PermissionChild[]) => void;
+  onReorderGroup: (reorderedGroups: PermissionGroupType[]) => void;
+  onReorderChild: (
+    parentSlug: string,
+    reorderedChildren: PermissionChild[]
+  ) => void;
   onReorderAction: (
     parentType: "group" | "child",
     parentSlug: string,
@@ -41,14 +68,27 @@ export type MenuTableProps = {
   apiResources: ApiResource[];
 };
 
-function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionGroup>) => void; onClose: () => void }) {
+function AddGroupDialog({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (group: Partial<PermissionGroupType>) => void;
+  onClose: () => void;
+}) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [icon, setIcon] = useState<PermissionGroup["icon"]>("CreditCard");
+  const [icon, setIcon] = useState<PermissionGroupType["icon"]>("CreditCard");
 
   const handleAdd = () => {
     if (name.trim() && slug.trim()) {
-      onAdd({ name: name.trim(), slug: slug.trim(), icon, sequence: 0, children: [], actions: [] });
+      onAdd({
+        name: name.trim(),
+        slug: slug.trim(),
+        icon,
+        sequence: 0,
+        children: [],
+        actions: [],
+      });
       onClose();
       setName("");
       setSlug("");
@@ -62,11 +102,20 @@ function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionG
         <DialogTitle>Add New Permission Group</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <Input placeholder="Group Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input placeholder="Group Slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+        <Input
+          placeholder="Group Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Group Slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+        />
         <select
           value={icon}
-          onChange={(e) => setIcon(e.target.value as PermissionGroup["icon"])}
+          onChange={(e) => setIcon(e.target.value as PermissionGroupType["icon"])}
           className="w-full rounded border border-gray-300 p-1"
           aria-label="Select Group Icon"
         >
@@ -76,8 +125,12 @@ function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionG
         </select>
       </div>
       <DialogFooter>
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleAdd} className="ml-2">Add Group</Button>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleAdd} className="ml-2">
+          Add Group
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -124,10 +177,27 @@ function AddChildDialog({
         <DialogTitle>Add New Child Permission</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <Input placeholder="Child Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input placeholder="Child Slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
-        <Input placeholder="Route Path" value={router} onChange={(e) => setRouter(e.target.value)} />
-        <Input placeholder="Component Path" value={component} onChange={(e) => setComponent(e.target.value)} />
+        <Input
+          placeholder="Child Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Child Slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+        />
+        <Input
+          placeholder="Route Path"
+          value={router}
+          onChange={(e) => setRouter(e.target.value)}
+        />
+        <Input
+          placeholder="Component Path"
+          value={component}
+          onChange={(e) => setComponent(e.target.value)}
+        />
         <select
           value={icon}
           onChange={(e) => setIcon(e.target.value as PermissionChild["icon"])}
@@ -140,8 +210,12 @@ function AddChildDialog({
         </select>
       </div>
       <DialogFooter>
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleAdd} className="ml-2">Add Child</Button>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleAdd} className="ml-2">
+          Add Child
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -154,7 +228,11 @@ function AddActionDialog({
   targetSlug,
   apiResources,
 }: {
-  onAdd: (targetType: "group" | "child", targetSlug: string, action: PermissionAction) => void;
+  onAdd: (
+    targetType: "group" | "child",
+    targetSlug: string,
+    action: PermissionAction
+  ) => void;
   onClose: () => void;
   targetType: "group" | "child";
   targetSlug: string;
@@ -210,8 +288,17 @@ function AddActionDialog({
         <DialogTitle>Add New Action</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <Input placeholder="Action Code" value={code} onChange={(e) => setCode(e.target.value)} />
-        <Input placeholder="Action Name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          placeholder="Action Code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Action Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <div>
           <label className="block mb-1 font-semibold">Select API Resources</label>
           <Command
@@ -221,7 +308,9 @@ function AddActionDialog({
           >
             <CommandInput placeholder="Search API resources..." />
             <CommandList>
-              {filteredResources.length === 0 && <CommandEmpty>No resources found</CommandEmpty>}
+              {filteredResources.length === 0 && (
+                <CommandEmpty>No resources found</CommandEmpty>
+              )}
               <CommandGroup>
                 {filteredResources.map((res, idx) => (
                   <CommandItem
@@ -229,8 +318,14 @@ function AddActionDialog({
                     onSelect={() => toggleResource(res)}
                     className="space-x-2 flex items-center"
                   >
-                    <Checkbox checked={isSelected(res)} disabled={true} className="pointer-events-none" />
-                    <span className="ml-2">{res.method} {res.path}</span>
+                    <Checkbox
+                      checked={isSelected(res)}
+                      // Allow toggling on click since CommandItem triggers onSelect
+                      onClick={(e) => e.preventDefault()}
+                    />
+                    <span className="ml-2">
+                      {res.method} {res.path}
+                    </span>
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -239,8 +334,16 @@ function AddActionDialog({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleAdd} className="ml-2" disabled={!code.trim() || !name.trim() || selectedResources.length === 0}>Add Action</Button>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleAdd}
+          className="ml-2"
+          disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+        >
+          Add Action
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -262,20 +365,37 @@ export function MenuTable({
   onReorderAction,
   apiResources,
 }: MenuTableProps) {
-  const [expandedGroupSlug, setExpandedGroupSlug] = React.useState<string | null>(null);
+  const [expandedGroupSlug, setExpandedGroupSlug] = React.useState<string | null>(
+    null
+  );
   const [addGroupOpen, setAddGroupOpen] = React.useState(false);
-  const [addChildOpenForParent, setAddChildOpenForParent] = React.useState<string | null>(null);
-  const [addActionOpenFor, setAddActionOpenFor] = React.useState<{ type: "group" | "child"; slug: string } | null>(null);
+  const [addChildOpenForParent, setAddChildOpenForParent] = React.useState<string | null>(
+    null
+  );
+  const [
+    addActionOpenFor,
+    setAddActionOpenFor,
+  ] = React.useState<{ type: "group" | "child"; slug: string } | null>(null);
 
-  const [dragging, setDragging] = React.useState<{
-    type: "group" | "child" | "action";
-    parentSlug?: string;
-    itemSlug: string;
+  // Group list drag and drop state
+  const [draggingGroupSlug, setDraggingGroupSlug] = React.useState<string | null>(null);
+
+  // Children drag and drop state
+  const [draggingChild, setDraggingChild] = React.useState<{
+    parentSlug: string;
+    childSlug: string;
   } | null>(null);
 
-  // Drag and drop handlers for groups
+  // Actions drag and drop state
+  const [draggingAction, setDraggingAction] = React.useState<{
+    parentType: "group" | "child";
+    parentSlug: string;
+    actionCode: string;
+  } | null>(null);
+
+  // Drag handlers for groups
   const onDragStartGroup = (e: React.DragEvent<HTMLDivElement>, slug: string) => {
-    setDragging({ type: "group", itemSlug: slug });
+    setDraggingGroupSlug(slug);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", slug);
   };
@@ -287,10 +407,9 @@ export function MenuTable({
 
   const onDropGroup = (e: React.DragEvent<HTMLDivElement>, dropSlug: string) => {
     e.preventDefault();
-    if (!dragging || dragging.type !== "group") return;
-    if (dragging.itemSlug === dropSlug) return;
+    if (!draggingGroupSlug || draggingGroupSlug === dropSlug) return;
 
-    const fromIndex = permissions.findIndex((g) => g.slug === dragging.itemSlug);
+    const fromIndex = permissions.findIndex((g) => g.slug === draggingGroupSlug);
     const toIndex = permissions.findIndex((g) => g.slug === dropSlug);
     if (fromIndex === -1 || toIndex === -1) return;
 
@@ -301,16 +420,16 @@ export function MenuTable({
     const sequencedGroups = newGroups.map((g, idx) => ({ ...g, sequence: idx + 1 }));
 
     onReorderGroup(sequencedGroups);
-    setDragging(null);
+    setDraggingGroupSlug(null);
   };
 
-  // Drag and drop handlers for children
+  // Drag handlers for children
   const onDragStartChild = (
     e: React.DragEvent<HTMLDivElement>,
     parentSlug: string,
     childSlug: string
   ) => {
-    setDragging({ type: "child", parentSlug, itemSlug: childSlug });
+    setDraggingChild({ parentSlug, childSlug });
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", childSlug);
   };
@@ -326,12 +445,17 @@ export function MenuTable({
     dropChildSlug: string
   ) => {
     e.preventDefault();
-    if (!dragging || dragging.type !== "child" || dragging.parentSlug !== parentSlug) return;
-    if (dragging.itemSlug === dropChildSlug) return;
+    if (
+      !draggingChild ||
+      draggingChild.parentSlug !== parentSlug ||
+      draggingChild.childSlug === dropChildSlug
+    )
+      return;
 
     const group = permissions.find((g) => g.slug === parentSlug);
     if (!group || !group.children) return;
-    const fromIndex = group.children.findIndex((c) => c.slug === dragging.itemSlug);
+
+    const fromIndex = group.children.findIndex((c) => c.slug === draggingChild.childSlug);
     const toIndex = group.children.findIndex((c) => c.slug === dropChildSlug);
     if (fromIndex === -1 || toIndex === -1) return;
 
@@ -342,17 +466,17 @@ export function MenuTable({
     const sequencedChildren = newChildren.map((c, idx) => ({ ...c, sequence: idx + 1 }));
 
     onReorderChild(parentSlug, sequencedChildren);
-    setDragging(null);
+    setDraggingChild(null);
   };
 
-  // Drag and drop handlers for actions
+  // Drag handlers for actions
   const onDragStartAction = (
     e: React.DragEvent<HTMLDivElement>,
     parentType: "group" | "child",
     parentSlug: string,
     actionCode: string
   ) => {
-    setDragging({ type: "action", parentSlug, itemSlug: actionCode });
+    setDraggingAction({ parentType, parentSlug, actionCode });
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", actionCode);
   };
@@ -369,19 +493,26 @@ export function MenuTable({
     dropActionCode: string
   ) => {
     e.preventDefault();
-    if (!dragging || dragging.type !== "action" || dragging.parentSlug !== parentSlug) return;
-    if (dragging.itemSlug === dropActionCode) return;
+    if (
+      !draggingAction ||
+      draggingAction.parentType !== parentType ||
+      draggingAction.parentSlug !== parentSlug ||
+      draggingAction.actionCode === dropActionCode
+    )
+      return;
 
     const group = permissions.find((g) => g.slug === parentSlug);
+
     let actions: PermissionAction[] | undefined = undefined;
-    if (parentType === "group" && group) {
-      actions = group.actions;
-    } else if (parentType === "child" && group && group.children) {
+
+    if (parentType === "group" && group) actions = group.actions;
+    else if (parentType === "child" && group && group.children) {
       const child = group.children.find((c) => c.slug === parentSlug);
       if (child) actions = child.actions;
     }
     if (!actions) return;
-    const fromIndex = actions.findIndex((a) => a.code === dragging.itemSlug);
+
+    const fromIndex = actions.findIndex((a) => a.code === draggingAction.actionCode);
     const toIndex = actions.findIndex((a) => a.code === dropActionCode);
     if (fromIndex === -1 || toIndex === -1) return;
 
@@ -389,15 +520,16 @@ export function MenuTable({
     const [moved] = newActions.splice(fromIndex, 1);
     newActions.splice(toIndex, 0, moved);
 
-    const sequencedActions = newActions.map((a, idx) => ({ ...a }));
+    onReorderAction(parentType, parentSlug, newActions);
 
-    onReorderAction(parentType, parentSlug, sequencedActions);
-    setDragging(null);
+    setDraggingAction(null);
   };
 
-  const [currentGroupForDetail, setCurrentGroupForDetail] = React.useState<PermissionGroup | null>(null);
+  const [currentGroupForDetail, setCurrentGroupForDetail] = React.useState<
+    PermissionGroupType | null
+  >(null);
 
-  const openGroupDetails = (group: PermissionGroup) => {
+  const openGroupDetails = (group: PermissionGroupType) => {
     setCurrentGroupForDetail(group);
   };
 
@@ -405,23 +537,34 @@ export function MenuTable({
     setCurrentGroupForDetail(null);
   };
 
-  // Render for groups list on left side
+  // Render groups list
   const renderGroupList = () => (
     <div className="max-h-[75vh] w-72 min-w-[18rem] overflow-auto border-r bg-gray-50 dark:bg-gray-800 p-2">
       <div className="flex justify-between mb-2">
         <h2 className="text-lg font-semibold">Permission Groups</h2>
-        <Dialog open={addGroupOpen} onOpenChange={setAddGroupOpen}>
+        <Dialog open={addGroupOpen} onOpenChange={(open: boolean) => setAddGroupOpen(open)}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="inline-flex items-center space-x-1"
+            >
               <Plus size={16} />
               <span>Add Group</span>
             </Button>
           </DialogTrigger>
-          {addGroupOpen && <AddGroupDialog onAdd={onAddGroup} onClose={() => setAddGroupOpen(false)} />}
+          {addGroupOpen && (
+            <AddGroupDialog
+              onAdd={onAddGroup}
+              onClose={() => setAddGroupOpen(false)}
+            />
+          )}
         </Dialog>
       </div>
       {permissions.length === 0 && (
-        <p className="text-center text-muted-foreground py-8">No permission groups available.</p>
+        <p className="text-center text-muted-foreground py-8">
+          No permission groups available.
+        </p>
       )}
       <div className="space-y-1">
         {permissions
@@ -463,7 +606,7 @@ export function MenuTable({
     </div>
   );
 
-  // Render the selected group's permission details on right side
+  // Render the selected group's permission details on the right
   const renderGroupDetails = () => {
     if (!currentGroupForDetail) {
       return (
@@ -473,53 +616,184 @@ export function MenuTable({
       );
     }
 
+    const group = currentGroupForDetail;
+
     return (
       <div className="max-h-[75vh] overflow-auto flex-1 p-4 bg-gray-50 dark:bg-gray-900 rounded border">
-        <PermissionGroupComponent
-          group={currentGroupForDetail}
-          onToggleAction={onToggleAction}
-          selectedActions={selectedActions}
-        />
-        <div className="mt-4 flex space-x-2">
-          <Dialog open={addChildOpenForParent === currentGroupForDetail.slug} onOpenChange={setAddChildOpenForParent}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
-                <Plus size={16} />
-                <span>Add Child</span>
-              </Button>
-            </DialogTrigger>
-            {addChildOpenForParent === currentGroupForDetail.slug && (
-              <AddChildDialog
-                parentSlug={currentGroupForDetail.slug}
-                onAdd={onAddChild}
-                onClose={() => setAddChildOpenForParent(null)}
-              />
-            )}
-          </Dialog>
+        <div className="mb-4 space-y-4">
 
-          <Dialog
-            open={addActionOpenFor?.slug === currentGroupForDetail.slug}
-            onOpenChange={(open) =>
-              setAddActionOpenFor(open ? { type: "group", slug: currentGroupForDetail.slug } : null)
-            }
-          >
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
-                <Plus size={16} />
-                <span>Add Action</span>
-              </Button>
-            </DialogTrigger>
+          {/* Children section */}
+          {group.children && group.children.length > 0 && (
+            <div>
+              <h3 className="mb-2 font-semibold text-lg">Children</h3>
+              <div className="space-y-2">
+                {group.children
+                  .slice()
+                  .sort((a, b) => a.sequence - b.sequence)
+                  .map((child) => (
+                    <div
+                      key={child.slug}
+                      draggable
+                      onDragStart={(e) => onDragStartChild(e, group.slug, child.slug)}
+                      onDragOver={onDragOverChild}
+                      onDrop={(e) => onDropChild(e, group.slug, child.slug)}
+                      className="rounded-md border p-2 bg-white dark:bg-gray-800"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center space-x-2 font-semibold">
+                          {React.createElement(
+                            {
+                              CreditCard: CreditCard,
+                              Zap: Zap,
+                              Home: Home,
+                            }[child.icon] || CreditCard,
+                            { className: "h-5 w-5 text-primary-foreground" }
+                          )}
+                          <span>{child.name}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground select-none">
+                          Seq: {child.sequence}
+                        </span>
+                      </div>
 
-            {addActionOpenFor?.slug === currentGroupForDetail.slug && (
-              <AddActionDialog
-                targetSlug={currentGroupForDetail.slug}
-                targetType="group"
-                apiResources={apiResources}
-                onAdd={onAddAction}
-                onClose={() => setAddActionOpenFor(null)}
-              />
-            )}
-          </Dialog>
+                      {/* Actions for child */}
+                      {child.actions && child.actions.length > 0 && (
+                        <div className="space-y-1">
+                          <h4 className="font-medium mb-1">Actions</h4>
+                          {child.actions
+                            .slice()
+                            .map((action) => (
+                              <div
+                                key={action.code}
+                                draggable
+                                onDragStart={(e) =>
+                                  onDragStartAction(e, "child", child.slug, action.code)
+                                }
+                                onDragOver={onDragOverAction}
+                                onDrop={(e) =>
+                                  onDropAction(e, "child", child.slug, action.code)
+                                }
+                                className="flex items-center space-x-2 rounded border p-1 cursor-move hover:bg-gray-100"
+                              >
+                                <Checkbox
+                                  id={`${child.slug}-action-${action.code}`}
+                                  checked={selectedActions.has(`${child.slug}:${action.code}`)}
+                                  onCheckedChange={(checked) =>
+                                    onToggleAction(child.slug, action.code, Boolean(checked))
+                                  }
+                                />
+                                <label
+                                  htmlFor={`${child.slug}-action-${action.code}`}
+                                  className="select-none"
+                                >
+                                  {action.code}
+                                </label>
+                                <button
+                                  onClick={() =>
+                                    onRemoveAction(child.slug, action.code)
+                                  }
+                                  className="ml-auto text-red-600 hover:text-red-800"
+                                  aria-label="Remove action"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions for group */}
+          {group.actions && group.actions.length > 0 && (
+            <div className="mt-4 space-y-1">
+              <h3 className="mb-2 font-semibold text-lg">Actions</h3>
+              {group.actions
+                .slice()
+                .map((action) => (
+                  <div
+                    key={action.code}
+                    draggable
+                    onDragStart={(e) =>
+                      onDragStartAction(e, "group", group.slug, action.code)
+                    }
+                    onDragOver={onDragOverAction}
+                    onDrop={(e) =>
+                      onDropAction(e, "group", group.slug, action.code)
+                    }
+                    className="flex items-center space-x-2 rounded border p-1 cursor-move hover:bg-gray-100"
+                  >
+                    <Checkbox
+                      id={`${group.slug}-action-${action.code}`}
+                      checked={selectedActions.has(`${group.slug}:${action.code}`)}
+                      onCheckedChange={(checked) =>
+                        onToggleAction(group.slug, action.code, Boolean(checked))
+                      }
+                    />
+                    <label
+                      htmlFor={`${group.slug}-action-${action.code}`}
+                      className="select-none"
+                    >
+                      {action.code}
+                    </label>
+                    <button
+                      onClick={() => onRemoveAction(group.slug, action.code)}
+                      className="ml-auto text-red-600 hover:text-red-800"
+                      aria-label="Remove action"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          <div className="mt-4 flex space-x-2">
+            <Dialog
+              open={addChildOpenForParent === group.slug}
+              onOpenChange={(open: boolean) => setAddChildOpenForParent(open ? group.slug : null)}
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
+                  <Plus size={16} />
+                  <span>Add Child</span>
+                </Button>
+              </DialogTrigger>
+              {addChildOpenForParent === group.slug && (
+                <AddChildDialog
+                  parentSlug={group.slug}
+                  onAdd={onAddChild}
+                  onClose={() => setAddChildOpenForParent(null)}
+                />
+              )}
+            </Dialog>
+
+            <Dialog
+              open={addActionOpenFor?.slug === group.slug}
+              onOpenChange={(open: boolean) =>
+                setAddActionOpenFor(open ? { type: "group", slug: group.slug } : null)
+              }
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
+                  <Plus size={16} />
+                  <span>Add Action</span>
+                </Button>
+              </DialogTrigger>
+              {addActionOpenFor?.slug === group.slug && (
+                <AddActionDialog
+                  targetSlug={group.slug}
+                  targetType="group"
+                  apiResources={apiResources}
+                  onAdd={onAddAction}
+                  onClose={() => setAddActionOpenFor(null)}
+                />
+              )}
+            </Dialog>
+          </div>
         </div>
       </div>
     );
