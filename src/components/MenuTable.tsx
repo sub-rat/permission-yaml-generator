@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
@@ -98,7 +97,6 @@ function EditableCell({
   );
 }
 
-// Modal component for adding new group
 function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionGroup>) => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -141,7 +139,6 @@ function AddGroupDialog({ onAdd, onClose }: { onAdd: (group: Partial<PermissionG
   );
 }
 
-// Modal component for adding new child
 function AddChildDialog({
   parentSlug,
   onAdd,
@@ -206,7 +203,6 @@ function AddChildDialog({
   );
 }
 
-// Modal component for adding new action with searchable resource selector
 function AddActionDialog({
   onAdd,
   onClose,
@@ -220,12 +216,11 @@ function AddActionDialog({
   targetSlug: string;
   apiResources: ApiResource[];
 }) {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [selectedResources, setSelectedResources] = useState<ApiResource[]>([]);
-  const [search, setSearch] = useState("");
+  const [code, setCode] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [selectedResources, setSelectedResources] = React.useState<ApiResource[]>([]);
+  const [search, setSearch] = React.useState("");
 
-  // Filtered resources for the searchable command menu
   const filteredResources = search.trim()
     ? apiResources.filter((res) =>
         `${res.method} ${res.path}`.toLowerCase().includes(search.toLowerCase())
@@ -289,7 +284,7 @@ function AddActionDialog({
                     onSelect={() => toggleResource(res)}
                     className="space-x-2 flex items-center"
                   >
-                    <Checkbox checked={isSelected(res)} readOnly className="pointer-events-none" />
+                    <Checkbox checked={isSelected(res)} disabled={true} className="pointer-events-none" />
                     <span className="ml-2">{res.method} {res.path}</span>
                   </CommandItem>
                 ))}
@@ -322,21 +317,17 @@ export function MenuTable({
   onReorderAction,
   apiResources,
 }: MenuTableProps) {
-  // Expanded groups
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  // Dialog states for add modals
   const [addGroupOpen, setAddGroupOpen] = useState(false);
   const [addChildOpenForParent, setAddChildOpenForParent] = useState<string | null>(null);
   const [addActionOpenFor, setAddActionOpenFor] = useState<{ type: "group" | "child"; slug: string } | null>(null);
 
-  // Dragging state: track drag source info
   const [dragging, setDragging] = useState<{
     type: "group" | "child" | "action";
     parentSlug?: string;
     itemSlug: string;
   } | null>(null);
 
-  // Drag handlers for groups
   const onDragStartGroup = (e: React.DragEvent<HTMLTableRowElement>, slug: string) => {
     setDragging({ type: "group", itemSlug: slug });
     e.dataTransfer.effectAllowed = "move";
@@ -353,7 +344,6 @@ export function MenuTable({
     if (!dragging || dragging.type !== "group") return;
     if (dragging.itemSlug === dropSlug) return;
 
-    // Reorder groups array based on drag and drop
     const fromIndex = permissions.findIndex((g) => g.slug === dragging.itemSlug);
     const toIndex = permissions.findIndex((g) => g.slug === dropSlug);
     if (fromIndex === -1 || toIndex === -1) return;
@@ -362,14 +352,12 @@ export function MenuTable({
     const [moved] = newGroups.splice(fromIndex, 1);
     newGroups.splice(toIndex, 0, moved);
 
-    // Update sequence numbers accordingly
     const sequencedGroups = newGroups.map((g, idx) => ({ ...g, sequence: idx + 1 }));
 
     onReorderGroup(sequencedGroups);
     setDragging(null);
   };
 
-  // Drag handlers for children
   const onDragStartChild = (
     e: React.DragEvent<HTMLTableRowElement>,
     parentSlug: string,
@@ -410,7 +398,6 @@ export function MenuTable({
     setDragging(null);
   };
 
-  // Drag handlers for actions - We allow reordering within their group or child only
   const onDragStartAction = (
     e: React.DragEvent<HTMLTableRowElement>,
     parentType: "group" | "child",
@@ -546,7 +533,6 @@ export function MenuTable({
           )}
         </Dialog>
 
-        {/* Show Add Child button only if one group is expanded */}
         {expandedGroups.size === 1 && (
           [...expandedGroups].map((slug) => (
             <Dialog key="add-child-dialog" open={addChildOpenForParent === slug} onOpenChange={(open) => setAddChildOpenForParent(open ? slug : null)}>
@@ -567,10 +553,8 @@ export function MenuTable({
           ))
         )}
 
-        {/* Add Action button visible only if one group or child expanded */}
         {expandedGroups.size === 1 && (
           [...expandedGroups].map((slug) => {
-            // Check if slug is a group or child
             let isGroup = permissions.some((g) => g.slug === slug);
             let isChild = !isGroup;
             const type = isGroup ? "group" : "child";
@@ -669,12 +653,10 @@ export function MenuTable({
 
                 {expandedGroups.has(group.slug) && (
                   <>
-                    {/* Render group actions */}
                     {group.actions?.slice().sort((a, b) => 0).map((action) => (
                       <ActionRow key={`group-action-${action.code}`} groupSlug={group.slug} action={action} />
                     ))}
 
-                    {/* Render children */}
                     {group.children?.slice().sort((a, b) => a.sequence - b.sequence).map((child) => (
                       <React.Fragment key={child.slug}>
                         <TableRow
@@ -711,7 +693,6 @@ export function MenuTable({
                           </TableCell>
                         </TableRow>
 
-                        {/* Render child's actions */}
                         {child.actions?.slice().sort((a, b) => 0).map((action) => (
                           <ActionRow
                             key={`child-action-${action.code}`}
@@ -737,4 +718,3 @@ export function MenuTable({
     </div>
   );
 }
-
