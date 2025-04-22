@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
@@ -93,6 +94,7 @@ const dummyPermissionData: PermissionNode[] = [
 const PermissionEditor = () => {
   const [apiResources, setApiResources] = useState<ApiResource[]>([]);
   const [permissions, setPermissions] = useState<PermissionNode[]>([]);
+  const [yamlInput, setYamlInput] = useState<string>("");
 
   useEffect(() => {
     const fetchApiResources = async () => {
@@ -106,9 +108,36 @@ const PermissionEditor = () => {
     const fetchPermissions = async () => {
       await new Promise((res) => setTimeout(res, 300));
       setPermissions(dummyPermissionData);
+      setYamlInput(yaml.dump(dummyPermissionData));
     };
     fetchPermissions();
   }, []);
+
+  // Auto-update YAML output when permissions change
+  useEffect(() => {
+    try {
+      const newYaml = yaml.dump(permissions);
+      setYamlInput(newYaml);
+    } catch (e) {
+      // Ignore YAML serialization errors
+    }
+  }, [permissions]);
+
+  // Load permissions from YAML input textarea
+  const onYamlLoad = () => {
+    try {
+      const parsed = yaml.load(yamlInput);
+      if (!Array.isArray(parsed)) {
+        toast({ title: "Invalid YAML", description: "The YAML should represent an array of permission nodes." });
+        return;
+      }
+      // Validate minimum required properties present?
+      setPermissions(parsed as PermissionNode[]);
+      toast({ title: "YAML Loaded", description: "Permissions loaded from YAML successfully." });
+    } catch (e) {
+      toast({ title: "Error parsing YAML", description: String(e) });
+    }
+  };
 
   const onAddGroup = (group: Partial<PermissionNode>) => {
     if (!group.name || !group.slug) {
@@ -298,6 +327,35 @@ const PermissionEditor = () => {
       <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">
         Permission Editor
       </h1>
+      <div className="mb-4">
+        <label htmlFor="yaml-input" className="block mb-1 font-medium text-gray-700">
+          Load Permissions from YAML
+        </label>
+        <textarea
+          id="yaml-input"
+          rows={8}
+          className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
+          value={yamlInput}
+          onChange={(e) => setYamlInput(e.target.value)}
+          spellCheck={false}
+          placeholder="Paste YAML permissions here and click Load YAML below."
+        />
+        <div className="mt-2 flex space-x-2">
+          <Button onClick={onYamlLoad} variant="outline" size="sm">
+            Load YAML
+          </Button>
+          <Button
+            onClick={() => {
+              toast({ title: "YAML Exported", description: "Permissions YAML copied to clipboard." });
+              navigator.clipboard.writeText(yamlInput);
+            }}
+            variant="default"
+            size="sm"
+          >
+            Copy YAML
+          </Button>
+        </div>
+      </div>
       <TooltipProvider>
         <MenuTable
           permissions={permissions}

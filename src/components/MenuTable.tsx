@@ -148,6 +148,7 @@ function EditGroupDialog({
           onClick={handleSave}
           disabled={!name.trim() || !slug.trim()}
           className="ml-2"
+          size="sm"
         >
           Save Changes
         </Button>
@@ -216,7 +217,7 @@ function AddGroupDialog({
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleAdd} className="ml-2">
+        <Button onClick={handleAdd} className="ml-2" size="sm">
           Add Group
         </Button>
       </DialogFooter>
@@ -299,6 +300,7 @@ function EditChildDialog({
           onClick={handleSave}
           disabled={!name.trim() || !slug.trim()}
           className="ml-2"
+          size="sm"
         >
           Save Changes
         </Button>
@@ -385,7 +387,7 @@ function AddChildDialog({
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleAdd} className="ml-2">
+        <Button onClick={handleAdd} className="ml-2" size="sm">
           Add Child
         </Button>
       </DialogFooter>
@@ -504,6 +506,7 @@ function EditActionDialog({
           onClick={handleSave}
           className="ml-2"
           disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+          size="sm"
         >
           Save Changes
         </Button>
@@ -625,6 +628,7 @@ function AddActionDialog({
           onClick={handleAdd}
           className="ml-2"
           disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+          size="sm"
         >
           Add Action
         </Button>
@@ -902,4 +906,3 @@ export function MenuTable({
     </div>
   );
 }
-
