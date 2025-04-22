@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Table,
@@ -10,7 +11,7 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
-import { CreditCard, Zap, Home, Plus } from "lucide-react";
+import { CreditCard, Zap, Home, Plus, Edit } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
@@ -71,6 +72,89 @@ export type MenuTableProps = {
   ) => void;
   apiResources: ApiResource[];
 };
+
+// Add / Edit Group Dialog with full editing capabilities
+function EditGroupDialog({
+  group,
+  onSave,
+  onClose,
+}: {
+  group: PermissionNode;
+  onSave: (updatedGroup: PermissionNode) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(group.name);
+  const [slug, setSlug] = useState(group.slug);
+  const [icon, setIcon] = useState<PermissionNode["icon"]>(group.icon);
+  const [router, setRouter] = useState(group.router || "");
+  const [component, setComponent] = useState(group.component || "");
+
+  const handleSave = () => {
+    if (!name.trim() || !slug.trim()) return;
+    onSave({
+      ...group,
+      name: name.trim(),
+      slug: slug.trim(),
+      icon,
+      router: router.trim() || undefined,
+      component: component.trim() || undefined,
+    });
+    onClose();
+  };
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Edit Permission Group</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <Input
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+        />
+        <Input
+          placeholder="Route Path (optional)"
+          value={router}
+          onChange={(e) => setRouter(e.target.value)}
+        />
+        <Input
+          placeholder="Component Path (optional)"
+          value={component}
+          onChange={(e) => setComponent(e.target.value)}
+        />
+        <select
+          value={icon}
+          onChange={(e) => setIcon(e.target.value as PermissionNode["icon"])}
+          className="w-full rounded border border-gray-300 p-1"
+          aria-label="Select Icon"
+        >
+          <option value="CreditCard">CreditCard</option>
+          <option value="Zap">Zap</option>
+          <option value="Home">Home</option>
+        </select>
+      </div>
+      <DialogFooter>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={!name.trim() || !slug.trim()}
+          className="ml-2"
+        >
+          Save Changes
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
 
 function AddGroupDialog({
   onAdd,
@@ -134,6 +218,89 @@ function AddGroupDialog({
         </Button>
         <Button onClick={handleAdd} className="ml-2">
           Add Group
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+// Add / Edit Child dialog (same structure for editing leaf or nested children)
+function EditChildDialog({
+  child,
+  onSave,
+  onClose,
+}: {
+  child: PermissionNode;
+  onSave: (updatedChild: PermissionNode) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(child.name);
+  const [slug, setSlug] = useState(child.slug);
+  const [icon, setIcon] = useState<PermissionNode["icon"]>(child.icon);
+  const [router, setRouter] = useState(child.router || "");
+  const [component, setComponent] = useState(child.component || "");
+
+  const handleSave = () => {
+    if (!name.trim() || !slug.trim()) return;
+    onSave({
+      ...child,
+      name: name.trim(),
+      slug: slug.trim(),
+      icon,
+      router: router.trim() || undefined,
+      component: component.trim() || undefined,
+    });
+    onClose();
+  };
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Edit Child Permission</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <Input
+          placeholder="Child Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Child Slug"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+        />
+        <Input
+          placeholder="Route Path"
+          value={router}
+          onChange={(e) => setRouter(e.target.value)}
+        />
+        <Input
+          placeholder="Component Path"
+          value={component}
+          onChange={(e) => setComponent(e.target.value)}
+        />
+        <select
+          value={icon}
+          onChange={(e) => setIcon(e.target.value as PermissionNode["icon"])}
+          className="w-full rounded border border-gray-300 p-1"
+          aria-label="Select Child Icon"
+        >
+          <option value="CreditCard">CreditCard</option>
+          <option value="Zap">Zap</option>
+          <option value="Home">Home</option>
+        </select>
+      </div>
+      <DialogFooter>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={!name.trim() || !slug.trim()}
+          className="ml-2"
+        >
+          Save Changes
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -220,6 +387,125 @@ function AddChildDialog({
         </Button>
         <Button onClick={handleAdd} className="ml-2">
           Add Child
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function EditActionDialog({
+  onSave,
+  onClose,
+  targetSlug,
+  action,
+  apiResources,
+}: {
+  onSave: (updatedAction: PermissionAction) => void;
+  onClose: () => void;
+  targetSlug: string;
+  action: PermissionAction;
+  apiResources: ApiResource[];
+}) {
+  const [code, setCode] = React.useState(action.code);
+  const [name, setName] = React.useState(action.name);
+  const [selectedResources, setSelectedResources] = React.useState<ApiResource[]>([...action.resources]);
+  const [search, setSearch] = React.useState("");
+
+  const filteredResources = React.useMemo(() => {
+    if (!search.trim()) return apiResources;
+    return apiResources.filter((res) =>
+      `${res.method} ${res.path}`.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search, apiResources]);
+
+  const toggleResource = (res: ApiResource) => {
+    const exists = selectedResources.find(
+      (r) => r.method === res.method && r.path === res.path
+    );
+    if (exists) {
+      setSelectedResources((old) =>
+        old.filter((r) => !(r.method === res.method && r.path === res.path))
+      );
+    } else {
+      setSelectedResources((old) => [...old, res]);
+    }
+  };
+
+  const isSelected = (res: ApiResource) =>
+    selectedResources.find(
+      (r) => r.method === res.method && r.path === res.path
+    ) !== undefined;
+
+  const handleSave = () => {
+    if (!code.trim() || !name.trim() || selectedResources.length === 0) return;
+    onSave({
+      code: code.trim(),
+      name: name.trim(),
+      resources: selectedResources,
+    });
+    onClose();
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Edit Action</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <Input
+          placeholder="Action Code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoFocus
+        />
+        <Input
+          placeholder="Action Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <div>
+          <label className="block mb-1 font-semibold">Select API Resources</label>
+          <Command
+            value={search}
+            onValueChange={setSearch}
+            className="max-h-48 overflow-auto border border-gray-300 rounded"
+          >
+            <CommandInput placeholder="Search API resources..." />
+            <CommandList>
+              {filteredResources.length === 0 && (
+                <CommandEmpty>No resources found</CommandEmpty>
+              )}
+              <CommandGroup>
+                {filteredResources.map((res, idx) => (
+                  <CommandItem
+                    key={`${res.method}-${res.path}-${idx}`}
+                    onSelect={() => toggleResource(res)}
+                    className="space-x-2 flex items-center"
+                  >
+                    <Checkbox
+                      checked={isSelected(res)}
+                      onClick={(e) => e.preventDefault()}
+                    />
+                    <span className="ml-2">
+                      {res.method} {res.path}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          className="ml-2"
+          disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+        >
+          Save Changes
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -371,19 +657,42 @@ function PermissionNodeItem({
   const [expanded, setExpanded] = React.useState(false);
   const [addChildOpen, setAddChildOpen] = React.useState(false);
   const [addActionOpen, setAddActionOpen] = React.useState(false);
+  const [editNodeOpen, setEditNodeOpen] = React.useState(false);
+  const [editActionOpenCode, setEditActionOpenCode] = React.useState<string | null>(null);
+
+  const IconMap = {
+    CreditCard: CreditCard,
+    Zap: Zap,
+    Home: Home,
+  };
+  const IconComponent = IconMap[node.icon] || CreditCard;
+
+  const openEditActionDialog = (code: string) => {
+    setEditActionOpenCode(code);
+  };
+
+  const closeEditActionDialog = () => {
+    setEditActionOpenCode(null);
+  };
+
+  const handleEditNodeSave = (updatedNode: PermissionNode) => {
+    onEditNode(updatedNode);
+  };
+
+  const handleEditActionSave = (updatedAction: PermissionAction) => {
+    // Update action in the node
+    const updatedActions = node.actions.map((act) =>
+      act.code === updatedAction.code ? updatedAction : act
+    );
+    onEditNode({ ...node, actions: updatedActions });
+    closeEditActionDialog();
+  };
 
   return (
-    <div className="mb-4 border rounded bg-white dark:bg-gray-800 shadow-sm" style={{ marginLeft: level * 16 }}>
-      <div className="flex items-center justify-between p-2 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
+    <div className="mb-4 border rounded bg-white shadow-sm" style={{ marginLeft: level * 16 }}>
+      <div className="flex items-center justify-between p-2 cursor-pointer select-none" onClick={() => setExpanded((v) => !v)}>
         <div className="flex items-center space-x-2">
-          {React.createElement(
-            {
-              CreditCard: CreditCard,
-              Zap: Zap,
-              Home: Home,
-            }[node.icon] || CreditCard,
-            { className: "h-5 w-5 text-primary-foreground" }
-          )}
+          <IconComponent className="h-5 w-5 text-primary-foreground" />
           <span className="font-semibold">{node.name}</span>
           <span className="text-xs text-muted-foreground">({node.slug})</span>
           {node.router && <span className="ml-2 text-sm font-mono text-gray-400">{node.router}</span>}
@@ -397,7 +706,8 @@ function PermissionNodeItem({
               setAddChildOpen(true);
             }}
           >
-            Add Child
+            <Plus size={14} />
+            <span className="ml-1">Add Child</span>
           </Button>
           <Button
             size="sm"
@@ -407,7 +717,20 @@ function PermissionNodeItem({
               setAddActionOpen(true);
             }}
           >
-            Add Action
+            <Plus size={14} />
+            <span className="ml-1">Add Action</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditNodeOpen(true);
+            }}
+            aria-label={`Edit node ${node.name}`}
+            title={`Edit node ${node.name}`}
+          >
+            <Edit size={16} />
           </Button>
         </div>
       </div>
@@ -425,16 +748,27 @@ function PermissionNodeItem({
                     <div>
                       <span className="font-semibold mr-2">{action.code}</span>
                       <span className="text-sm text-muted-foreground">{action.name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">({action.resources.length} resource{action.resources.length !== 1 ? 's' : ''})</span>
+                      <span className="text-xs text-muted-foreground ml-2">({action.resources.length} resource{action.resources.length !== 1 ? "s" : ""})</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onRemoveAction(node.slug, action.code)}
-                      aria-label={`Remove action ${action.code}`}
-                    >
-                      &times;
-                    </Button>
+                    <div className="flex space-x-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditActionDialog(action.code)}
+                        aria-label={`Edit action ${action.code}`}
+                        title={`Edit action ${action.code}`}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onRemoveAction(node.slug, action.code)}
+                        aria-label={`Remove action ${action.code}`}
+                      >
+                        &times;
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -478,6 +812,26 @@ function PermissionNodeItem({
           apiResources={apiResources}
         />
       </Dialog>
+      <Dialog open={editNodeOpen} onOpenChange={setEditNodeOpen}>
+        <EditGroupDialog
+          group={node}
+          onSave={handleEditNodeSave}
+          onClose={() => setEditNodeOpen(false)}
+        />
+      </Dialog>
+      {editActionOpenCode && (
+        <Dialog open onOpenChange={(open) => {
+            if (!open) closeEditActionDialog();
+          }}>
+          <EditActionDialog
+            targetSlug={node.slug}
+            action={node.actions.find(a => a.code === editActionOpenCode)!}
+            onSave={handleEditActionSave}
+            onClose={closeEditActionDialog}
+            apiResources={apiResources}
+          />
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -548,3 +902,4 @@ export function MenuTable({
     </div>
   );
 }
+

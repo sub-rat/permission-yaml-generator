@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
@@ -266,7 +265,6 @@ const PermissionEditor = () => {
     toast({ title: "Child removed", description: `Child "${childSlug}" removed successfully.` });
   };
 
-  // Editing a node recursively (for future extensibility)
   const editNode = (
     nodes: PermissionNode[],
     updatedNode: PermissionNode
@@ -274,9 +272,10 @@ const PermissionEditor = () => {
     return nodes.map((node) => {
       if (node.slug === updatedNode.slug) {
         return {
-          ...node,
           ...updatedNode,
-          children: node.children && updatedNode.children ? editNode(node.children, updatedNode) : node.children,
+          children: updatedNode.children
+            ? editNode(node.children || [], updatedNode)
+            : node.children,
         };
       }
       if (node.children) {
@@ -291,6 +290,7 @@ const PermissionEditor = () => {
 
   const onEditNode = (updatedNode: PermissionNode) => {
     setPermissions((prev) => editNode(prev, updatedNode));
+    toast({ title: "Node updated", description: `Node "${updatedNode.name}" updated successfully.` });
   };
 
   return (
