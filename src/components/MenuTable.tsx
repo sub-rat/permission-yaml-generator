@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Table,
@@ -29,7 +28,6 @@ import {
   CommandItem,
 } from "./ui/command";
 
-// Updated types to support recursive children
 export type ApiResource = {
   method: string;
   path: string;
@@ -374,7 +372,6 @@ function PermissionNodeItem({
   const [addChildOpen, setAddChildOpen] = React.useState(false);
   const [addActionOpen, setAddActionOpen] = React.useState(false);
 
-  // Recursive rendering of children nodes
   return (
     <div className="mb-4 border rounded bg-white dark:bg-gray-800 shadow-sm" style={{ marginLeft: level * 16 }}>
       <div className="flex items-center justify-between p-2 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
@@ -416,7 +413,6 @@ function PermissionNodeItem({
       </div>
       {expanded && (
         <div className="p-2 space-y-2">
-          {/* Actions */}
           {node.actions && node.actions.length > 0 && (
             <div>
               <p className="mb-1 font-medium">Actions:</p>
@@ -432,7 +428,7 @@ function PermissionNodeItem({
                       <span className="text-xs text-muted-foreground ml-2">({action.resources.length} resource{action.resources.length !== 1 ? 's' : ''})</span>
                     </div>
                     <Button
-                      size="xs"
+                      size="sm"
                       variant="destructive"
                       onClick={() => onRemoveAction(node.slug, action.code)}
                       aria-label={`Remove action ${action.code}`}
@@ -444,7 +440,6 @@ function PermissionNodeItem({
               </ul>
             </div>
           )}
-          {/* Children */}
           {node.children && node.children.length > 0 && (
             <div className="mt-2 space-y-2">
               {node.children
@@ -468,7 +463,6 @@ function PermissionNodeItem({
           )}
         </div>
       )}
-      {/* Dialogs */}
       <Dialog open={addChildOpen} onOpenChange={setAddChildOpen}>
         <AddChildDialog
           parentSlug={node.slug}
@@ -503,8 +497,6 @@ export function MenuTable({
   apiResources,
 }: MenuTableProps) {
   const [addGroupOpen, setAddGroupOpen] = React.useState(false);
-
-  // For simplicity, skipping drag & drop in this refactor; can be added later.
 
   return (
     <div className="flex w-full flex-col rounded border bg-white shadow-sm p-2 overflow-auto max-h-[75vh]">
@@ -556,4 +548,3 @@ export function MenuTable({
     </div>
   );
 }
-
