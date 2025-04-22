@@ -28,40 +28,46 @@ import {
   CommandGroup,
   CommandItem,
 } from "./ui/command";
-import {
-  PermissionGroup as PermissionGroupType,
-  PermissionChild,
-  PermissionAction,
-  ApiResource,
-} from "./PermissionGroup";
 
+// Updated types to support recursive children
+export type ApiResource = {
+  method: string;
+  path: string;
+  attribute?: string;
+};
+
+export type PermissionAction = {
+  code: string;
+  name: string;
+  resources: ApiResource[];
+};
+
+export type PermissionNode = {
+  name: string;
+  slug: string;
+  icon: "CreditCard" | "Zap" | "Home";
+  router?: string;
+  component?: string;
+  sequence: number;
+  actions: PermissionAction[];
+  children?: PermissionNode[];
+};
 
 export type MenuTableProps = {
-  permissions: PermissionGroupType[];
+  permissions: PermissionNode[];
   selectedActions: Set<string>;
-  onToggleAction: (
-    groupSlug: string,
-    actionCode: string,
-    enabled: boolean
-  ) => void;
-  onEditGroup: (updatedGroup: PermissionGroupType) => void;
-  onEditChild: (parentSlug: string, updatedChild: PermissionChild) => void;
-  onRemoveAction: (groupSlug: string, actionCode: string) => void;
-  onRemoveChild: (parentSlug: string, childSlug: string) => void;
-  onAddGroup: (group: Partial<PermissionGroupType>) => void;
-  onAddChild: (parentSlug: string, child: Partial<PermissionChild>) => void;
+  onAddGroup: (group: Partial<PermissionNode>) => void;
+  onAddChild: (parentSlug: string, child: Partial<PermissionNode>) => void;
   onAddAction: (
-    targetType: "group" | "child",
     targetSlug: string,
     action: PermissionAction
   ) => void;
-  onReorderGroup: (reorderedGroups: PermissionGroupType[]) => void;
-  onReorderChild: (
-    parentSlug: string,
-    reorderedChildren: PermissionChild[]
-  ) => void;
+  onRemoveAction: (nodeSlug: string, actionCode: string) => void;
+  onRemoveChild: (parentSlug: string, childSlug: string) => void;
+  onEditNode: (updatedNode: PermissionNode) => void;
+  onReorderGroup: (reorderedGroups: PermissionNode[]) => void;
+  onReorderChild: (parentSlug: string, reorderedChildren: PermissionNode[]) => void;
   onReorderAction: (
-    parentType: "group" | "child",
     parentSlug: string,
     reorderedActions: PermissionAction[]
   ) => void;
@@ -72,12 +78,12 @@ function AddGroupDialog({
   onAdd,
   onClose,
 }: {
-  onAdd: (group: Partial<PermissionGroupType>) => void;
+  onAdd: (group: Partial<PermissionNode>) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [icon, setIcon] = useState<PermissionGroupType["icon"]>("CreditCard");
+  const [icon, setIcon] = useState<PermissionNode["icon"]>("CreditCard");
 
   const handleAdd = () => {
     if (name.trim() && slug.trim()) {
@@ -86,8 +92,8 @@ function AddGroupDialog({
         slug: slug.trim(),
         icon,
         sequence: 0,
-        children: [],
         actions: [],
+        children: [],
       });
       onClose();
       setName("");
@@ -115,7 +121,7 @@ function AddGroupDialog({
         />
         <select
           value={icon}
-          onChange={(e) => setIcon(e.target.value as PermissionGroupType["icon"])}
+          onChange={(e) => setIcon(e.target.value as PermissionNode["icon"])}
           className="w-full rounded border border-gray-300 p-1"
           aria-label="Select Group Icon"
         >
@@ -142,12 +148,12 @@ function AddChildDialog({
   onClose,
 }: {
   parentSlug: string;
-  onAdd: (parentSlug: string, child: Partial<PermissionChild>) => void;
+  onAdd: (parentSlug: string, child: Partial<PermissionNode>) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [icon, setIcon] = useState<PermissionChild["icon"]>("CreditCard");
+  const [icon, setIcon] = useState<PermissionNode["icon"]>("CreditCard");
   const [router, setRouter] = useState("");
   const [component, setComponent] = useState("");
 
@@ -161,6 +167,7 @@ function AddChildDialog({
         component: component.trim(),
         sequence: 0,
         actions: [],
+        children: [],
       });
       onClose();
       setName("");
@@ -200,7 +207,7 @@ function AddChildDialog({
         />
         <select
           value={icon}
-          onChange={(e) => setIcon(e.target.value as PermissionChild["icon"])}
+          onChange={(e) => setIcon(e.target.value as PermissionNode["icon"])}
           className="w-full rounded border border-gray-300 p-1"
           aria-label="Select Child Icon"
         >
@@ -224,17 +231,11 @@ function AddChildDialog({
 function AddActionDialog({
   onAdd,
   onClose,
-  targetType,
   targetSlug,
   apiResources,
 }: {
-  onAdd: (
-    targetType: "group" | "child",
-    targetSlug: string,
-    action: PermissionAction
-  ) => void;
+  onAdd: (targetSlug: string, action: PermissionAction) => void;
   onClose: () => void;
-  targetType: "group" | "child";
   targetSlug: string;
   apiResources: ApiResource[];
 }) {
@@ -270,7 +271,7 @@ function AddActionDialog({
 
   const handleAdd = () => {
     if (!code.trim() || !name.trim() || selectedResources.length === 0) return;
-    onAdd(targetType, targetSlug, {
+    onAdd(targetSlug, {
       code: code.trim(),
       name: name.trim(),
       resources: selectedResources,
@@ -320,7 +321,6 @@ function AddActionDialog({
                   >
                     <Checkbox
                       checked={isSelected(res)}
-                      // Allow toggling on click since CommandItem triggers onSelect
                       onClick={(e) => e.preventDefault()}
                     />
                     <span className="ml-2">
@@ -349,198 +349,166 @@ function AddActionDialog({
   );
 }
 
+function PermissionNodeItem({
+  node,
+  level = 0,
+  selectedActions,
+  onAddChild,
+  onAddAction,
+  onRemoveAction,
+  onRemoveChild,
+  onEditNode,
+  apiResources,
+}: {
+  node: PermissionNode;
+  level?: number;
+  selectedActions: Set<string>;
+  onAddChild: (parentSlug: string, child: Partial<PermissionNode>) => void;
+  onAddAction: (targetSlug: string, action: PermissionAction) => void;
+  onRemoveAction: (nodeSlug: string, actionCode: string) => void;
+  onRemoveChild: (parentSlug: string, childSlug: string) => void;
+  onEditNode: (updatedNode: PermissionNode) => void;
+  apiResources: ApiResource[];
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const [addChildOpen, setAddChildOpen] = React.useState(false);
+  const [addActionOpen, setAddActionOpen] = React.useState(false);
+
+  // Recursive rendering of children nodes
+  return (
+    <div className="mb-4 border rounded bg-white dark:bg-gray-800 shadow-sm" style={{ marginLeft: level * 16 }}>
+      <div className="flex items-center justify-between p-2 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center space-x-2">
+          {React.createElement(
+            {
+              CreditCard: CreditCard,
+              Zap: Zap,
+              Home: Home,
+            }[node.icon] || CreditCard,
+            { className: "h-5 w-5 text-primary-foreground" }
+          )}
+          <span className="font-semibold">{node.name}</span>
+          <span className="text-xs text-muted-foreground">({node.slug})</span>
+          {node.router && <span className="ml-2 text-sm font-mono text-gray-400">{node.router}</span>}
+        </div>
+        <div className="flex space-x-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAddChildOpen(true);
+            }}
+          >
+            Add Child
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAddActionOpen(true);
+            }}
+          >
+            Add Action
+          </Button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="p-2 space-y-2">
+          {/* Actions */}
+          {node.actions && node.actions.length > 0 && (
+            <div>
+              <p className="mb-1 font-medium">Actions:</p>
+              <ul className="space-y-1">
+                {node.actions.map((action) => (
+                  <li
+                    key={action.code}
+                    className="flex items-center justify-between border rounded p-1"
+                  >
+                    <div>
+                      <span className="font-semibold mr-2">{action.code}</span>
+                      <span className="text-sm text-muted-foreground">{action.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({action.resources.length} resource{action.resources.length !== 1 ? 's' : ''})</span>
+                    </div>
+                    <Button
+                      size="xs"
+                      variant="destructive"
+                      onClick={() => onRemoveAction(node.slug, action.code)}
+                      aria-label={`Remove action ${action.code}`}
+                    >
+                      &times;
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Children */}
+          {node.children && node.children.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {node.children
+                .slice()
+                .sort((a, b) => a.sequence - b.sequence)
+                .map((child) => (
+                  <PermissionNodeItem
+                    key={child.slug}
+                    node={child}
+                    level={level + 1}
+                    selectedActions={selectedActions}
+                    onAddChild={onAddChild}
+                    onAddAction={onAddAction}
+                    onRemoveAction={onRemoveAction}
+                    onRemoveChild={onRemoveChild}
+                    onEditNode={onEditNode}
+                    apiResources={apiResources}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Dialogs */}
+      <Dialog open={addChildOpen} onOpenChange={setAddChildOpen}>
+        <AddChildDialog
+          parentSlug={node.slug}
+          onAdd={onAddChild}
+          onClose={() => setAddChildOpen(false)}
+        />
+      </Dialog>
+      <Dialog open={addActionOpen} onOpenChange={setAddActionOpen}>
+        <AddActionDialog
+          targetSlug={node.slug}
+          onAdd={onAddAction}
+          onClose={() => setAddActionOpen(false)}
+          apiResources={apiResources}
+        />
+      </Dialog>
+    </div>
+  );
+}
+
 export function MenuTable({
   permissions,
   selectedActions,
-  onToggleAction,
-  onEditGroup,
-  onEditChild,
-  onRemoveAction,
-  onRemoveChild,
   onAddGroup,
   onAddChild,
   onAddAction,
+  onRemoveAction,
+  onRemoveChild,
+  onEditNode,
   onReorderGroup,
   onReorderChild,
   onReorderAction,
   apiResources,
 }: MenuTableProps) {
-  const [expandedGroupSlug, setExpandedGroupSlug] = React.useState<string | null>(
-    null
-  );
   const [addGroupOpen, setAddGroupOpen] = React.useState(false);
-  const [addChildOpenForParent, setAddChildOpenForParent] = React.useState<string | null>(
-    null
-  );
-  const [
-    addActionOpenFor,
-    setAddActionOpenFor,
-  ] = React.useState<{ type: "group" | "child"; slug: string } | null>(null);
 
-  // Group list drag and drop state
-  const [draggingGroupSlug, setDraggingGroupSlug] = React.useState<string | null>(null);
+  // For simplicity, skipping drag & drop in this refactor; can be added later.
 
-  // Children drag and drop state
-  const [draggingChild, setDraggingChild] = React.useState<{
-    parentSlug: string;
-    childSlug: string;
-  } | null>(null);
-
-  // Actions drag and drop state
-  const [draggingAction, setDraggingAction] = React.useState<{
-    parentType: "group" | "child";
-    parentSlug: string;
-    actionCode: string;
-  } | null>(null);
-
-  // Drag handlers for groups
-  const onDragStartGroup = (e: React.DragEvent<HTMLDivElement>, slug: string) => {
-    setDraggingGroupSlug(slug);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", slug);
-  };
-
-  const onDragOverGroup = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const onDropGroup = (e: React.DragEvent<HTMLDivElement>, dropSlug: string) => {
-    e.preventDefault();
-    if (!draggingGroupSlug || draggingGroupSlug === dropSlug) return;
-
-    const fromIndex = permissions.findIndex((g) => g.slug === draggingGroupSlug);
-    const toIndex = permissions.findIndex((g) => g.slug === dropSlug);
-    if (fromIndex === -1 || toIndex === -1) return;
-
-    const newGroups = [...permissions];
-    const [moved] = newGroups.splice(fromIndex, 1);
-    newGroups.splice(toIndex, 0, moved);
-
-    const sequencedGroups = newGroups.map((g, idx) => ({ ...g, sequence: idx + 1 }));
-
-    onReorderGroup(sequencedGroups);
-    setDraggingGroupSlug(null);
-  };
-
-  // Drag handlers for children
-  const onDragStartChild = (
-    e: React.DragEvent<HTMLDivElement>,
-    parentSlug: string,
-    childSlug: string
-  ) => {
-    setDraggingChild({ parentSlug, childSlug });
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", childSlug);
-  };
-
-  const onDragOverChild = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const onDropChild = (
-    e: React.DragEvent<HTMLDivElement>,
-    parentSlug: string,
-    dropChildSlug: string
-  ) => {
-    e.preventDefault();
-    if (
-      !draggingChild ||
-      draggingChild.parentSlug !== parentSlug ||
-      draggingChild.childSlug === dropChildSlug
-    )
-      return;
-
-    const group = permissions.find((g) => g.slug === parentSlug);
-    if (!group || !group.children) return;
-
-    const fromIndex = group.children.findIndex((c) => c.slug === draggingChild.childSlug);
-    const toIndex = group.children.findIndex((c) => c.slug === dropChildSlug);
-    if (fromIndex === -1 || toIndex === -1) return;
-
-    const newChildren = [...group.children];
-    const [moved] = newChildren.splice(fromIndex, 1);
-    newChildren.splice(toIndex, 0, moved);
-
-    const sequencedChildren = newChildren.map((c, idx) => ({ ...c, sequence: idx + 1 }));
-
-    onReorderChild(parentSlug, sequencedChildren);
-    setDraggingChild(null);
-  };
-
-  // Drag handlers for actions
-  const onDragStartAction = (
-    e: React.DragEvent<HTMLDivElement>,
-    parentType: "group" | "child",
-    parentSlug: string,
-    actionCode: string
-  ) => {
-    setDraggingAction({ parentType, parentSlug, actionCode });
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", actionCode);
-  };
-
-  const onDragOverAction = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const onDropAction = (
-    e: React.DragEvent<HTMLDivElement>,
-    parentType: "group" | "child",
-    parentSlug: string,
-    dropActionCode: string
-  ) => {
-    e.preventDefault();
-    if (
-      !draggingAction ||
-      draggingAction.parentType !== parentType ||
-      draggingAction.parentSlug !== parentSlug ||
-      draggingAction.actionCode === dropActionCode
-    )
-      return;
-
-    const group = permissions.find((g) => g.slug === parentSlug);
-
-    let actions: PermissionAction[] | undefined = undefined;
-
-    if (parentType === "group" && group) actions = group.actions;
-    else if (parentType === "child" && group && group.children) {
-      const child = group.children.find((c) => c.slug === parentSlug);
-      if (child) actions = child.actions;
-    }
-    if (!actions) return;
-
-    const fromIndex = actions.findIndex((a) => a.code === draggingAction.actionCode);
-    const toIndex = actions.findIndex((a) => a.code === dropActionCode);
-    if (fromIndex === -1 || toIndex === -1) return;
-
-    const newActions = [...actions];
-    const [moved] = newActions.splice(fromIndex, 1);
-    newActions.splice(toIndex, 0, moved);
-
-    onReorderAction(parentType, parentSlug, newActions);
-
-    setDraggingAction(null);
-  };
-
-  const [currentGroupForDetail, setCurrentGroupForDetail] = React.useState<
-    PermissionGroupType | null
-  >(null);
-
-  const openGroupDetails = (group: PermissionGroupType) => {
-    setCurrentGroupForDetail(group);
-  };
-
-  const closeGroupDetails = () => {
-    setCurrentGroupForDetail(null);
-  };
-
-  // Render groups list
-  const renderGroupList = () => (
-    <div className="max-h-[75vh] w-72 min-w-[18rem] overflow-auto border-r bg-gray-50 dark:bg-gray-800 p-2">
-      <div className="flex justify-between mb-2">
+  return (
+    <div className="flex w-full flex-col rounded border bg-white shadow-sm p-2 overflow-auto max-h-[75vh]">
+      <div className="flex justify-between mb-4">
         <h2 className="text-lg font-semibold">Permission Groups</h2>
         <Dialog open={addGroupOpen} onOpenChange={(open: boolean) => setAddGroupOpen(open)}>
           <DialogTrigger asChild>
@@ -561,248 +529,31 @@ export function MenuTable({
           )}
         </Dialog>
       </div>
-      {permissions.length === 0 && (
+      {permissions.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
           No permission groups available.
         </p>
+      ) : (
+        <div className="space-y-2">
+          {permissions
+            .slice()
+            .sort((a, b) => a.sequence - b.sequence)
+            .map((group) => (
+              <PermissionNodeItem
+                key={group.slug}
+                node={group}
+                selectedActions={selectedActions}
+                onAddChild={onAddChild}
+                onAddAction={onAddAction}
+                onRemoveAction={onRemoveAction}
+                onRemoveChild={onRemoveChild}
+                onEditNode={onEditNode}
+                apiResources={apiResources}
+              />
+            ))}
+        </div>
       )}
-      <div className="space-y-1">
-        {permissions
-          .slice()
-          .sort((a, b) => a.sequence - b.sequence)
-          .map((group) => (
-            <div
-              key={group.slug}
-              draggable
-              onDragStart={(e) => onDragStartGroup(e, group.slug)}
-              onDragOver={onDragOverGroup}
-              onDrop={(e) => onDropGroup(e, group.slug)}
-              className={`cursor-move rounded-md p-2 ${
-                currentGroupForDetail?.slug === group.slug
-                  ? "bg-indigo-100 dark:bg-indigo-900 font-semibold"
-                  : "hover:bg-indigo-50 dark:hover:bg-indigo-950"
-              }`}
-              onClick={() => openGroupDetails(group)}
-            >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  {React.createElement(
-                    {
-                      CreditCard: CreditCard,
-                      Zap: Zap,
-                      Home: Home,
-                    }[group.icon] || CreditCard,
-                    { className: "h-5 w-5 text-primary-foreground" }
-                  )}
-                  <span>{group.name}</span>
-                </div>
-                <span className="text-sm text-muted-foreground select-none">
-                  Seq: {group.sequence}
-                </span>
-              </div>
-            </div>
-          ))}
-      </div>
-    </div>
-  );
-
-  // Render the selected group's permission details on the right
-  const renderGroupDetails = () => {
-    if (!currentGroupForDetail) {
-      return (
-        <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
-          <p>Select a group to view its details</p>
-        </div>
-      );
-    }
-
-    const group = currentGroupForDetail;
-
-    return (
-      <div className="max-h-[75vh] overflow-auto flex-1 p-4 bg-gray-50 dark:bg-gray-900 rounded border">
-        <div className="mb-4 space-y-4">
-
-          {/* Children section */}
-          {group.children && group.children.length > 0 && (
-            <div>
-              <h3 className="mb-2 font-semibold text-lg">Children</h3>
-              <div className="space-y-2">
-                {group.children
-                  .slice()
-                  .sort((a, b) => a.sequence - b.sequence)
-                  .map((child) => (
-                    <div
-                      key={child.slug}
-                      draggable
-                      onDragStart={(e) => onDragStartChild(e, group.slug, child.slug)}
-                      onDragOver={onDragOverChild}
-                      onDrop={(e) => onDropChild(e, group.slug, child.slug)}
-                      className="rounded-md border p-2 bg-white dark:bg-gray-800"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center space-x-2 font-semibold">
-                          {React.createElement(
-                            {
-                              CreditCard: CreditCard,
-                              Zap: Zap,
-                              Home: Home,
-                            }[child.icon] || CreditCard,
-                            { className: "h-5 w-5 text-primary-foreground" }
-                          )}
-                          <span>{child.name}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground select-none">
-                          Seq: {child.sequence}
-                        </span>
-                      </div>
-
-                      {/* Actions for child */}
-                      {child.actions && child.actions.length > 0 && (
-                        <div className="space-y-1">
-                          <h4 className="font-medium mb-1">Actions</h4>
-                          {child.actions
-                            .slice()
-                            .map((action) => (
-                              <div
-                                key={action.code}
-                                draggable
-                                onDragStart={(e) =>
-                                  onDragStartAction(e, "child", child.slug, action.code)
-                                }
-                                onDragOver={onDragOverAction}
-                                onDrop={(e) =>
-                                  onDropAction(e, "child", child.slug, action.code)
-                                }
-                                className="flex items-center space-x-2 rounded border p-1 cursor-move hover:bg-gray-100"
-                              >
-                                <Checkbox
-                                  id={`${child.slug}-action-${action.code}`}
-                                  checked={selectedActions.has(`${child.slug}:${action.code}`)}
-                                  onCheckedChange={(checked) =>
-                                    onToggleAction(child.slug, action.code, Boolean(checked))
-                                  }
-                                />
-                                <label
-                                  htmlFor={`${child.slug}-action-${action.code}`}
-                                  className="select-none"
-                                >
-                                  {action.code}
-                                </label>
-                                <button
-                                  onClick={() =>
-                                    onRemoveAction(child.slug, action.code)
-                                  }
-                                  className="ml-auto text-red-600 hover:text-red-800"
-                                  aria-label="Remove action"
-                                >
-                                  &times;
-                                </button>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Actions for group */}
-          {group.actions && group.actions.length > 0 && (
-            <div className="mt-4 space-y-1">
-              <h3 className="mb-2 font-semibold text-lg">Actions</h3>
-              {group.actions
-                .slice()
-                .map((action) => (
-                  <div
-                    key={action.code}
-                    draggable
-                    onDragStart={(e) =>
-                      onDragStartAction(e, "group", group.slug, action.code)
-                    }
-                    onDragOver={onDragOverAction}
-                    onDrop={(e) =>
-                      onDropAction(e, "group", group.slug, action.code)
-                    }
-                    className="flex items-center space-x-2 rounded border p-1 cursor-move hover:bg-gray-100"
-                  >
-                    <Checkbox
-                      id={`${group.slug}-action-${action.code}`}
-                      checked={selectedActions.has(`${group.slug}:${action.code}`)}
-                      onCheckedChange={(checked) =>
-                        onToggleAction(group.slug, action.code, Boolean(checked))
-                      }
-                    />
-                    <label
-                      htmlFor={`${group.slug}-action-${action.code}`}
-                      className="select-none"
-                    >
-                      {action.code}
-                    </label>
-                    <button
-                      onClick={() => onRemoveAction(group.slug, action.code)}
-                      className="ml-auto text-red-600 hover:text-red-800"
-                      aria-label="Remove action"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-            </div>
-          )}
-
-          <div className="mt-4 flex space-x-2">
-            <Dialog
-              open={addChildOpenForParent === group.slug}
-              onOpenChange={(open: boolean) => setAddChildOpenForParent(open ? group.slug : null)}
-            >
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
-                  <Plus size={16} />
-                  <span>Add Child</span>
-                </Button>
-              </DialogTrigger>
-              {addChildOpenForParent === group.slug && (
-                <AddChildDialog
-                  parentSlug={group.slug}
-                  onAdd={onAddChild}
-                  onClose={() => setAddChildOpenForParent(null)}
-                />
-              )}
-            </Dialog>
-
-            <Dialog
-              open={addActionOpenFor?.slug === group.slug}
-              onOpenChange={(open: boolean) =>
-                setAddActionOpenFor(open ? { type: "group", slug: group.slug } : null)
-              }
-            >
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="inline-flex items-center space-x-1">
-                  <Plus size={16} />
-                  <span>Add Action</span>
-                </Button>
-              </DialogTrigger>
-              {addActionOpenFor?.slug === group.slug && (
-                <AddActionDialog
-                  targetSlug={group.slug}
-                  targetType="group"
-                  apiResources={apiResources}
-                  onAdd={onAddAction}
-                  onClose={() => setAddActionOpenFor(null)}
-                />
-              )}
-            </Dialog>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex w-full rounded border bg-white shadow-sm">
-      {renderGroupList()}
-      {renderGroupDetails()}
     </div>
   );
 }
+
