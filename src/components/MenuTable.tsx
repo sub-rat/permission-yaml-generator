@@ -439,7 +439,7 @@ function EditActionDialog({
     ) !== undefined;
 
   const handleSave = () => {
-    if (!code.trim() || !name.trim() || selectedResources.length === 0) return;
+    if (!code.trim() || !name.trim() || selectedResources?.length === 0) return;
     onSave({
       code: code.trim(),
       name: name.trim(),
@@ -474,7 +474,7 @@ function EditActionDialog({
           >
             <CommandInput placeholder="Search API resources..." />
             <CommandList>
-              {filteredResources.length === 0 && (
+              {filteredResources?.length === 0 && (
                 <CommandEmpty>No resources found</CommandEmpty>
               )}
               <CommandGroup>
@@ -505,7 +505,7 @@ function EditActionDialog({
         <Button
           onClick={handleSave}
           className="ml-2"
-          disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+          disabled={!code.trim() || !name.trim() || selectedResources?.length === 0}
           size="sm"
         >
           Save Changes
@@ -557,7 +557,7 @@ function AddActionDialog({
     ) !== undefined;
 
   const handleAdd = () => {
-    if (!code.trim() || !name.trim() || selectedResources.length === 0) return;
+    if (!code.trim() || !name.trim() || selectedResources?.length === 0) return;
     onAdd(targetSlug, {
       code: code.trim(),
       name: name.trim(),
@@ -596,7 +596,7 @@ function AddActionDialog({
           >
             <CommandInput placeholder="Search API resources..." />
             <CommandList>
-              {filteredResources.length === 0 && (
+              {filteredResources?.length === 0 && (
                 <CommandEmpty>No resources found</CommandEmpty>
               )}
               <CommandGroup>
@@ -627,7 +627,7 @@ function AddActionDialog({
         <Button
           onClick={handleAdd}
           className="ml-2"
-          disabled={!code.trim() || !name.trim() || selectedResources.length === 0}
+          disabled={!code.trim() || !name.trim() || selectedResources?.length === 0}
           size="sm"
         >
           Add Action
@@ -740,7 +740,7 @@ function PermissionNodeItem({
       </div>
       {expanded && (
         <div className="p-2 space-y-2">
-          {node.actions && node.actions.length > 0 && (
+          {node.actions && node.actions?.length > 0 && (
             <div>
               <p className="mb-1 font-medium">Actions:</p>
               <ul className="space-y-1">
@@ -752,7 +752,7 @@ function PermissionNodeItem({
                     <div>
                       <span className="font-semibold mr-2">{action.code}</span>
                       <span className="text-sm text-muted-foreground">{action.name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">({action.resources.length} resource{action.resources.length !== 1 ? "s" : ""})</span>
+                      <span className="text-xs text-muted-foreground ml-2">({action.resources?.length} resource{action.resources?.length !== 1 ? "s" : ""})</span>
                     </div>
                     <div className="flex space-x-1">
                       <Button
@@ -778,7 +778,7 @@ function PermissionNodeItem({
               </ul>
             </div>
           )}
-          {node.children && node.children.length > 0 && (
+          {node.children && node.children?.length > 0 && (
             <div className="mt-2 space-y-2">
               {node.children
                 .slice()
@@ -879,7 +879,7 @@ export function MenuTable({
           )}
         </Dialog>
       </div>
-      {permissions.length === 0 ? (
+      {permissions?.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
           No permission groups available.
         </p>
