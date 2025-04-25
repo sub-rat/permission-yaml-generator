@@ -1,105 +1,37 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { Button } from "../components/ui/button";
-import { MenuTable, PermissionNode, ApiResource, PermissionAction } from "../components/MenuTable";
-
-const dummyApiRoutes: ApiResource[] = [
-  { method: "GET", path: "/api/v1/roles" },
-  { method: "POST", path: "/api/v1/users" },
-  { method: "GET", path: "/api/v1/users/:id" },
-  { method: "PUT", path: "/api/v1/users/:id" },
-  { method: "DELETE", path: "/api/v1/users/:id" },
-  { method: "GET", path: "/api/v1/users" },
-  { method: "PATCH", path: "/api/v1/users/:id/disable" },
-  { method: "PATCH", path: "/api/v1/users/:id/enable" },
-  { method: "POST", path: "/api/v1/teachers" },
-  { method: "GET", path: "/api/v1/teachers/:id" },
-  { method: "PUT", path: "/api/v1/teachers/:id" },
-  { method: "DELETE", path: "/api/v1/teachers/:id" },
-  { method: "GET", path: "/api/v1/teachers" },
-  { method: "POST", path: "/api/v1/students" },
-  { method: "GET", path: "/api/v1/students/:id" },
-  { method: "PUT", path: "/api/v1/students/:id" },
-  { method: "DELETE", path: "/api/v1/students/:id" },
-  { method: "GET", path: "/api/v1/students" },
-  { method: "GET", path: "/api/v1/zodiac-signs" },
-  { method: "GET", path: "/api/v1/countries" },
-];
-
-const dummyPermissionData: PermissionNode[] = [
-  {
-    name: "Users",
-    slug: "users",
-    icon: "CreditCard",
-    sequence: 1,
-    actions: [],
-    children: [
-      {
-        name: "Admin",
-        slug: "admin",
-        icon: "Zap",
-        router: "/system/admin",
-        component: "system/admin/index",
-        sequence: 1,
-        actions: [
-          {
-            code: "add",
-            name: "Add Roles",
-            resources: [
-              { method: "GET", path: "/api/v1/roles" },
-              { method: "POST", path: "/api/v1/users" },
-            ],
-          },
-          {
-            code: "edit",
-            name: "Edit User",
-            resources: [
-              { method: "GET", path: "/api/v1/users/:id" },
-              { method: "PUT", path: "/api/v1/users/:id" },
-            ],
-          },
-          {
-            code: "delete",
-            name: "Delete User",
-            resources: [{ method: "DELETE", path: "/api/v1/users/:id" }],
-          },
-        ],
-        children: [
-          {
-            name: "Staff",
-            slug: "staff",
-            icon: "Home",
-            router: "/system/admin/staff",
-            component: "system/admin/staff/index",
-            sequence: 1,
-            actions: [
-              {
-                code: "view",
-                name: "View Staff",
-                resources: [{ method: "GET", path: "/api/v1/staff" }],
-              },
-            ],
-            children: [],
-          },
-        ],
-      },
-    ],
-  },
-];
+import {
+  MenuTable
+} from "@/components/menuTable/MenuTable"
+import { PermissionNode, ApiResource, PermissionAction } from '@/lib/types/allTypes'
+import { dummyPermissionData } from "@/lib/data/data";
+import { getRoutes } from "@/lib/api/routes";
+import { useNavigate } from "react-router-dom";
+import { messages } from "@/lib/constants/messages";
+import { Input } from "@/components/ui/input";
+import { handleFileChange } from "@/lib/utils/fileReader";
 
 const PermissionEditor = () => {
-  const [apiResources, setApiResources] = useState<ApiResource[]>([]);
-  const [permissions, setPermissions] = useState<PermissionNode[]>([]);
-  const [yamlInput, setYamlInput] = useState<string>("");
+  const navigate = useNavigate()
+
+  const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view')
+  const [apiResources, setApiResources] = useState<ApiResource[]>([])
+  const [permissions, setPermissions] = useState<PermissionNode[]>([])
+  const [yamlInput, setYamlInput] = useState<string>("")
 
   useEffect(() => {
     const fetchApiResources = async () => {
-      await new Promise((res) => setTimeout(res, 300));
-      setApiResources(dummyApiRoutes);
+      await new Promise((res) => setTimeout(res, 250))
+      const resourcesDataRes = await getRoutes()
+
+      if (resourcesDataRes.message == messages.MALFORMED_AUTH) navigate("/");
+
+      // setApiResources(dummyApiRoutes);
+      setApiResources(resourcesDataRes.data)
     };
     fetchApiResources();
   }, []);
@@ -131,6 +63,7 @@ const PermissionEditor = () => {
         toast({ title: "Invalid YAML", description: "The YAML should represent an array of permission nodes." });
         return;
       }
+
       // Validate minimum required properties present?
       setPermissions(parsed as PermissionNode[]);
       toast({ title: "YAML Loaded", description: "Permissions loaded from YAML successfully." });
@@ -322,40 +255,91 @@ const PermissionEditor = () => {
     toast({ title: "Node updated", description: `Node "${updatedNode.name}" updated successfully.` });
   };
 
+  const handleFile = async (e) => {
+    const yamlConvert = handleFileChange(e)
+    const yamlText = await yamlConvert
+
+    if (yamlText) {
+      const parsed = yaml.load(yamlText)
+      if (!Array.isArray(parsed)) {
+        toast({ title: "Invalid YAML", description: "The YAML should represent an array of permission nodes." });
+        return;
+      }
+
+      setPermissions(parsed as PermissionNode[])
+      setYamlInput(yamlText)
+    }
+  }
+
   return (
     <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
-      <h1 className="text-3xl font-bold mb-6 text-center text-primary-foreground select-none">
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-700 select-none">
         Permission Editor
       </h1>
+
       <div className="mb-4">
-        <label htmlFor="yaml-input" className="block mb-1 font-medium text-gray-700">
-          Load Permissions from YAML
-        </label>
+        <div className="mb-4 flex justify-end items-center">
+          {/* <label htmlFor="yaml-input" className="blockfont-medium text-gray-700">
+            Load Permissions from YAML
+          </label> */}
+
+          <div className="flex space-x-2">
+            <Input
+              className="w-56"
+              type="file"
+              accept=".yaml,.yml"
+              multiple={false}
+              onChange={handleFile}
+            />
+            <Button
+              onClick={() => {
+                setEditorMode('view')
+              }}
+              variant="outline"
+              size="sm">
+              View YAML
+            </Button>
+            <Button
+              onClick={() => {
+                setEditorMode('edit')
+              }}
+              variant="default"
+              size="sm"
+            >
+              Edit YAML
+            </Button>
+          </div>
+        </div>
+
         <textarea
           id="yaml-input"
-          rows={8}
+          rows={50}
           className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
           value={yamlInput}
           onChange={(e) => setYamlInput(e.target.value)}
           spellCheck={false}
           placeholder="Paste YAML permissions here and click Load YAML below."
         />
-        <div className="mt-2 flex space-x-2">
-          <Button onClick={onYamlLoad} variant="outline" size="sm">
-            Load YAML
-          </Button>
-          <Button
-            onClick={() => {
-              toast({ title: "YAML Exported", description: "Permissions YAML copied to clipboard." });
-              navigator.clipboard.writeText(yamlInput);
-            }}
-            variant="default"
-            size="sm"
-          >
-            Copy YAML
-          </Button>
-        </div>
+
+        {editorMode == 'edit' ?
+          <div className="mt-2 flex space-x-2">
+            <Button onClick={onYamlLoad} variant="outline" size="sm">
+              Load YAML
+            </Button>
+            <Button
+              onClick={() => {
+                toast({ title: "YAML Exported", description: "Permissions YAML copied to clipboard." });
+                navigator.clipboard.writeText(yamlInput);
+              }}
+              variant="default"
+              size="sm"
+            >
+              Copy YAML
+            </Button>
+          </div>
+          : null}
       </div>
+
       <TooltipProvider>
         <MenuTable
           permissions={permissions}
@@ -366,9 +350,9 @@ const PermissionEditor = () => {
           onRemoveAction={onRemoveAction}
           onRemoveChild={onRemoveChild}
           onEditNode={onEditNode}
-          onReorderGroup={() => {}}
-          onReorderChild={() => {}}
-          onReorderAction={() => {}}
+          onReorderGroup={() => { }}
+          onReorderChild={() => { }}
+          onReorderAction={() => { }}
           apiResources={apiResources}
         />
       </TooltipProvider>
