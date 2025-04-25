@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
 import { TooltipProvider } from "../components/ui/tooltip";
@@ -14,6 +14,10 @@ import { useNavigate } from "react-router-dom";
 import { messages } from "@/lib/constants/messages";
 import { Input } from "@/components/ui/input";
 import { handleFileChange } from "@/lib/utils/fileReader";
+import DownloadYaml from "@/components/editor/downloadYaml";
+import { findIndexOfCurrentWord } from "@/lib/utils/editor";
+
+const suggestionsList = ['white', 'yellow', 'blue', 'red', 'green', 'black', 'brown', 'azure', 'ivory', 'teal'];
 
 const PermissionEditor = () => {
   const navigate = useNavigate()
@@ -22,6 +26,11 @@ const PermissionEditor = () => {
   const [apiResources, setApiResources] = useState<ApiResource[]>([])
   const [permissions, setPermissions] = useState<PermissionNode[]>([])
   const [yamlInput, setYamlInput] = useState<string>("")
+  const [matchingWords, setMatchingWords] = useState<string[]>([])
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, visible: true })
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mirrorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchApiResources = async () => {
@@ -271,6 +280,68 @@ const PermissionEditor = () => {
     }
   }
 
+  const replaceCurrentWord = (newWord: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const currentValue = yamlInput;
+    const cursorPos = textarea.selectionStart;
+    const startIndex = findIndexOfCurrentWord(textarea);
+
+    const newValue =
+      currentValue.substring(0, startIndex + 1) +
+      newWord +
+      currentValue.substring(cursorPos);
+
+    setYamlInput(newValue);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCursorPos = startIndex + 1 + newWord.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+
+    setDropdownPosition((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
+
+  const handleInput = () => {
+    const textarea = textareaRef.current;
+    const mirror = mirrorRef.current;
+
+    if (!textarea || !mirror || !dropdownPosition.visible) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textUntilCursor = textarea.value.substring(0, cursorPos);
+
+    const words = textUntilCursor.trim().split(/\s+/);
+    const currentWord = words[words.length - 1] || '';
+    const previousWord = words.length >= 2 ? words[words.length - 2] : '';
+
+    if (previousWord !== "path:" || currentWord == "") return;
+
+    const filtered = suggestionsList.filter((s) => s.includes(currentWord));
+    setMatchingWords(filtered);
+
+    mirror.innerText = textUntilCursor.replace(/\n$/, '\n.');
+    const span = document.createElement('span');
+    span.textContent = '.';
+    mirror.appendChild(span);
+
+    const { offsetTop, offsetLeft } = span;
+
+    setDropdownPosition({
+      top: offsetTop + 20,
+      left: offsetLeft,
+      // visible: filtered.length > 0,
+      visible: true,
+    });
+
+    mirror.removeChild(span);
+  };
+
   return (
     <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-700 select-none">
@@ -279,10 +350,6 @@ const PermissionEditor = () => {
 
       <div className="mb-4">
         <div className="mb-4 flex justify-end items-center">
-          {/* <label htmlFor="yaml-input" className="blockfont-medium text-gray-700">
-            Load Permissions from YAML
-          </label> */}
-
           <div className="flex space-x-2">
             <Input
               className="w-56"
@@ -311,15 +378,69 @@ const PermissionEditor = () => {
           </div>
         </div>
 
-        <textarea
-          id="yaml-input"
-          rows={50}
-          className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
-          value={yamlInput}
-          onChange={(e) => setYamlInput(e.target.value)}
-          spellCheck={false}
-          placeholder="Paste YAML permissions here and click Load YAML below."
-        />
+        <div className="relative">
+          <textarea
+            id="yaml-input"
+            ref={textareaRef}
+            rows={20}
+            className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
+            value={yamlInput}
+            onChange={(e) => setYamlInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key == "Escape") {
+                setDropdownPosition(prev => ({
+                  ...prev,
+                  visible: !prev.visible
+                }))
+              }
+            }}
+            spellCheck={false}
+            placeholder="Paste YAML permissions here and click Load YAML below."
+            onInput={handleInput}
+          />
+
+          <div
+            ref={mirrorRef}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              visibility: 'hidden',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              padding: '8px',
+              width: '100%',
+              lineHeight: '1.5',
+            }}
+          />
+
+          {
+            dropdownPosition.visible && matchingWords.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: dropdownPosition.top,
+                  left: dropdownPosition.left,
+                  backgroundColor: 'white',
+                  border: '1px solid #ccc',
+                  padding: '4px',
+                  zIndex: 1000,
+                }}
+              >
+                {matchingWords.map((word, index) => (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      replaceCurrentWord(word)
+                    }}
+                  >{word}</div>
+                ))}
+              </div>
+            )
+          }
+        </div>
 
         {editorMode == 'edit' ?
           <div className="mt-2 flex space-x-2">
@@ -336,6 +457,9 @@ const PermissionEditor = () => {
             >
               Copy YAML
             </Button>
+            <DownloadYaml
+              yamlContent={yamlInput}
+            />
           </div>
           : null}
       </div>

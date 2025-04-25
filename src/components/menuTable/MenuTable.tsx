@@ -8,7 +8,7 @@ import {
 } from "../ui/dialog";
 import { MenuTableProps } from "@/lib/types/allTypes";
 import AddGroupDialog from "./AddGroupDialog";
-import PermissionNodeItem from "./PermissionNodeItem";
+import PermissionNodeItem from "../permission/PermissionNodeItem";
 
 
 export function MenuTable({
@@ -61,7 +61,7 @@ export function MenuTable({
             .sort((a, b) => a.sequence - b.sequence)
             .map((group, index) => (
               <PermissionNodeItem
-                key={group.slug}
+                key={index}
                 node={group}
                 selectedActions={selectedActions}
                 onAddChild={onAddChild}

@@ -5,10 +5,10 @@ import {
     Dialog,
 } from "../ui/dialog";
 import { ApiResource, PermissionAction, PermissionNode } from "@/lib/types/allTypes";
-import EditGroupDialog from "./EditGroupDialog";
-import AddChildDialog from "./AddChildDialog";
-import EditActionDialog from "./EditActionDialog";
-import AddActionDialog from "./AddActionDialog";
+import EditGroupDialog from "../menuTable/EditGroupDialog";
+import AddChildDialog from "../menuTable/AddChildDialog";
+import EditActionDialog from "../menuTable/EditActionDialog";
+import AddActionDialog from "../menuTable/AddActionDialog";
 
 function PermissionNodeItem({
     node,
@@ -74,6 +74,7 @@ function PermissionNodeItem({
                     <span className="text-xs text-muted-foreground">({node.slug})</span>
                     {node.router && <span className="ml-2 text-sm font-mono text-gray-400">{node.router}</span>}
                 </div>
+                
                 <div className="flex space-x-1">
                     <Button
                         size="sm"
@@ -111,6 +112,7 @@ function PermissionNodeItem({
                     </Button>
                 </div>
             </div>
+            
             {expanded && (
                 <div className="p-2 space-y-2">
                     {node.actions && node.actions?.length > 0 && (
@@ -156,9 +158,9 @@ function PermissionNodeItem({
                             {node.children
                                 .slice()
                                 .sort((a, b) => a.sequence - b.sequence)
-                                .map((child) => (
+                                .map((child, index) => (
                                     <PermissionNodeItem
-                                        key={child.slug}
+                                        key={index}
                                         node={child}
                                         level={level + 1}
                                         selectedActions={selectedActions}
