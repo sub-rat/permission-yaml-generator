@@ -204,7 +204,7 @@ const PermissionEditor = () => {
     actionCode: string
   ): PermissionNode[] => {
     return nodes.map((node) => {
-      if (node.slug === nodeSlug) {
+      if (node.id === nodeSlug || node.slug === nodeSlug) {
         return {
           ...node,
           actions: node.actions.filter((a) => a.code !== actionCode),
@@ -221,6 +221,14 @@ const PermissionEditor = () => {
   };
 
   const onRemoveAction = (nodeSlug: string, actionCode: string) => {
+    // console.log(permissions)
+    // const newPermissions = permissions.filter(item => (item.id! != nodeSlug || item.slug != nodeSlug))
+
+    // console.log(nodeSlug, actionCode)
+    // return
+    // setPermissions(prev => {
+    //   return prev.filter(item => item.id != nodeSlug)
+    // })
     setPermissions((prev) => removeActionFromNode(prev, nodeSlug, actionCode));
     toast({ title: "Action removed", description: `Action "${actionCode}" removed successfully.` });
   };

@@ -142,7 +142,11 @@ function PermissionNodeItem({
                                             <Button
                                                 size="sm"
                                                 variant="destructive"
-                                                onClick={() => onRemoveAction(node.slug, action.code)}
+                                                onClick={() => {
+                                                    const identifier = node.slug ?? node.id
+                                                    
+                                                    onRemoveAction(identifier, action.code)
+                                                }}
                                                 aria-label={`Remove action ${action.code}`}
                                             >
                                                 &times;
