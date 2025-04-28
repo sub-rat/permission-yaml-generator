@@ -25,7 +25,7 @@ const Index = () => {
   return (
     <FormProvider {...methods}>
       <div
-        className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
+        className="min-h-screen flex flex-col items-center justify-center bg-slate-700 p-6">
         <Card
           className="max-w-lg w-full p-6 text-center shadow-md">
           <h1

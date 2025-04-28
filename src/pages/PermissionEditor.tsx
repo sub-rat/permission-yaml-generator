@@ -1,33 +1,45 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import yaml from "js-yaml";
 import { toast } from "../hooks/use-toast";
-import { TooltipProvider } from "../components/ui/tooltip";
-import { Button } from "../components/ui/button";
+import {
+  TooltipProvider
+} from "@/components/ui/tooltip";
+import {
+  Button
+} from "@/components/ui/button";
 import {
   MenuTable
 } from "@/components/menuTable/MenuTable"
-import { PermissionNode, ApiResource, PermissionAction } from '@/lib/types/allTypes'
+import {
+  PermissionNode,
+  ApiResource,
+  PermissionAction
+} from '@/lib/types/allTypes'
 import { dummyPermissionData } from "@/lib/data/data";
 import { getRoutes } from "@/lib/api/routes";
 import { useNavigate } from "react-router-dom";
 import { messages } from "@/lib/constants/messages";
 import { Input } from "@/components/ui/input";
 import { handleFileChange } from "@/lib/utils/fileReader";
-import DownloadYaml from "@/components/editor/downloadYaml";
+import DownloadYaml from "@/components/editor/DownloadYaml";
 import { findIndexOfCurrentWord } from "@/lib/utils/editor";
-
-const suggestionsList = ['white', 'yellow', 'blue', 'red', 'green', 'black', 'brown', 'azure', 'ivory', 'teal'];
 
 const PermissionEditor = () => {
   const navigate = useNavigate()
 
-  const [editorMode, setEditorMode] = useState<'view' | 'edit'>('view')
+  // const [editorMode, setEditorMode] = useState<'view' | 'edit'>('edit')
   const [apiResources, setApiResources] = useState<ApiResource[]>([])
   const [permissions, setPermissions] = useState<PermissionNode[]>([])
   const [yamlInput, setYamlInput] = useState<string>("")
   const [matchingWords, setMatchingWords] = useState<string[]>([])
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, visible: true })
+  const [dropdownPosition, setDropdownPosition] = useState({ 
+    top: 0, 
+    left: 0, 
+    visible: true,
+    visibilityChangeReason: 'scroll'
+   })
+  const [suggestionsList, setSuggestionsList] = useState<string[]>([])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const mirrorRef = useRef<HTMLDivElement>(null)
@@ -41,6 +53,9 @@ const PermissionEditor = () => {
 
       // setApiResources(dummyApiRoutes);
       setApiResources(resourcesDataRes.data)
+
+      const paths = resourcesDataRes.data.map(item => item.path)
+      setSuggestionsList(paths)
     };
     fetchApiResources();
   }, []);
@@ -301,15 +316,40 @@ const PermissionEditor = () => {
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     });
 
-    setDropdownPosition((prev) => ({
-      ...prev,
-      visible: false,
-    }));
+    // setDropdownPosition((prev) => ({
+    //   ...prev,
+    //   visible: false,
+    // }));
+
+    setMatchingWords([])
   };
+
+  const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = textareaRef.current;
+
+    const cursorPos = textarea.selectionStart;
+    const textUntilCursor = textarea.value.substring(0, cursorPos);
+
+    const words = textUntilCursor.trim().split(/\s+/);
+    const currentWord = words[words.length - 1] || '';
+    const previousWord = words.length >= 2 ? words[words.length - 2] : '';
+
+    if (previousWord !== "path:" || currentWord == "") {
+      setMatchingWords([]);
+      return;
+    }
+  }
 
   const handleInput = () => {
     const textarea = textareaRef.current;
     const mirror = mirrorRef.current;
+
+    if(dropdownPosition.visibilityChangeReason != 'escape') {
+      setDropdownPosition(prev => ({
+        ...prev,
+        visible: true,
+      }));
+    }
 
     if (!textarea || !mirror || !dropdownPosition.visible) return;
 
@@ -320,7 +360,10 @@ const PermissionEditor = () => {
     const currentWord = words[words.length - 1] || '';
     const previousWord = words.length >= 2 ? words[words.length - 2] : '';
 
-    if (previousWord !== "path:" || currentWord == "") return;
+    if (previousWord !== "path:" || currentWord == "") {
+      setMatchingWords([]);
+      return;
+    }
 
     const filtered = suggestionsList.filter((s) => s.includes(currentWord));
     setMatchingWords(filtered);
@@ -335,114 +378,87 @@ const PermissionEditor = () => {
     setDropdownPosition({
       top: offsetTop + 20,
       left: offsetLeft,
-      // visible: filtered.length > 0,
       visible: true,
+      visibilityChangeReason: 'scroll'
     });
 
     mirror.removeChild(span);
   };
 
   return (
-    <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-700 select-none">
-        Permission Editor
-      </h1>
+    <div className="p-4 min-h-screen w-screen bg-slate-800">
+      <section className="min-h-screen max-w-7xl mx-auto p-6 bg-white  border rounded-md shadow-sm">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-700 select-none">
+          Permission Editor
+        </h1>
 
-      <div className="mb-4">
-        <div className="mb-4 flex justify-end items-center">
-          <div className="flex space-x-2">
-            <Input
-              className="w-56"
-              type="file"
-              accept=".yaml,.yml"
-              multiple={false}
-              onChange={handleFile}
-            />
-            <Button
-              onClick={() => {
-                setEditorMode('view')
+        <div className="mb-4">
+          <div className="relative">
+            <textarea
+              id="yaml-input"
+              ref={textareaRef}
+              rows={20}
+              className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
+              value={yamlInput}
+              onChange={(e) => setYamlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key == "Escape") {
+                  setDropdownPosition(prev => ({
+                    ...prev,
+                    visible: !prev.visible,
+                    visibilityChangeReason: 'escape'
+                  }))
+                }
               }}
-              variant="outline"
-              size="sm">
-              View YAML
-            </Button>
-            <Button
-              onClick={() => {
-                setEditorMode('edit')
-              }}
-              variant="default"
-              size="sm"
-            >
-              Edit YAML
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative">
-          <textarea
-            id="yaml-input"
-            ref={textareaRef}
-            rows={20}
-            className="w-full rounded border border-gray-300 p-2 font-mono text-sm"
-            value={yamlInput}
-            onChange={(e) => setYamlInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key == "Escape") {
+              onScroll={() => {
                 setDropdownPosition(prev => ({
                   ...prev,
-                  visible: !prev.visible
+                  visible: false,
+                  visibilityChangeReason: 'scroll'
                 }))
-              }
-            }}
-            spellCheck={false}
-            placeholder="Paste YAML permissions here and click Load YAML below."
-            onInput={handleInput}
-          />
+              }}
+              onSelect={handleSelect}
+              onInput={handleInput}
+              spellCheck={false}
+              placeholder="Paste YAML permissions here and click Load YAML below."
+            />
 
-          <div
-            ref={mirrorRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
-              visibility: 'hidden',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              padding: '8px',
-              width: '100%',
-              lineHeight: '1.5',
-            }}
-          />
+            <div
+              className="absolute w-full p-2 top-0 left-0"
+              ref={mirrorRef}
+              style={{
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                visibility: 'hidden',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                lineHeight: '1.5',
+              }}
+            />
 
-          {
-            dropdownPosition.visible && matchingWords.length > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: dropdownPosition.top,
-                  left: dropdownPosition.left,
-                  backgroundColor: 'white',
-                  border: '1px solid #ccc',
-                  padding: '4px',
-                  zIndex: 1000,
-                }}
-              >
-                {matchingWords.map((word, index) => (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      replaceCurrentWord(word)
-                    }}
-                  >{word}</div>
-                ))}
-              </div>
-            )
-          }
-        </div>
+            {
+              dropdownPosition.visible && matchingWords.length > 0 && (
+                <div
+                  className="border absolute z-50 rounded-sm bg-white right-2 top-2"
+                  // style={{
+                    // top: dropdownPosition.top,
+                    // left: dropdownPosition.left,
+                  // }}
+                >
+                  {matchingWords.slice(0, 10).map((word, index) => (
+                    <div
+                      className="px-4 py-1.5 border hover:bg-slate-50 cursor-pointer"
+                      key={index}
+                      onClick={() => {
+                        replaceCurrentWord(word)
+                      }}
+                    >{word}</div>
+                  ))}
+                </div>
+              )
+            }
+          </div>
 
-        {editorMode == 'edit' ?
           <div className="mt-2 flex space-x-2">
             <Button onClick={onYamlLoad} variant="outline" size="sm">
               Load YAML
@@ -457,30 +473,37 @@ const PermissionEditor = () => {
             >
               Copy YAML
             </Button>
+            <Input
+              className="w-56"
+              type="file"
+              accept=".yaml,.yml"
+              multiple={false}
+              onChange={handleFile}
+            />
             <DownloadYaml
               yamlContent={yamlInput}
             />
           </div>
-          : null}
-      </div>
+        </div>
 
-      <TooltipProvider>
-        <MenuTable
-          permissions={permissions}
-          selectedActions={new Set()}
-          onAddGroup={onAddGroup}
-          onAddChild={onAddChild}
-          onAddAction={onAddAction}
-          onRemoveAction={onRemoveAction}
-          onRemoveChild={onRemoveChild}
-          onEditNode={onEditNode}
-          onReorderGroup={() => { }}
-          onReorderChild={() => { }}
-          onReorderAction={() => { }}
-          apiResources={apiResources}
-        />
-      </TooltipProvider>
-    </section>
+        <TooltipProvider>
+          <MenuTable
+            permissions={permissions}
+            selectedActions={new Set()}
+            onAddGroup={onAddGroup}
+            onAddChild={onAddChild}
+            onAddAction={onAddAction}
+            onRemoveAction={onRemoveAction}
+            onRemoveChild={onRemoveChild}
+            onEditNode={onEditNode}
+            onReorderGroup={() => { }}
+            onReorderChild={() => { }}
+            onReorderAction={() => { }}
+            apiResources={apiResources}
+          />
+        </TooltipProvider>
+      </section>
+    </div>
   );
 };
 

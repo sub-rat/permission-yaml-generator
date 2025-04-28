@@ -69,7 +69,7 @@ function PermissionNodeItem({
         <div className="mb-4 border rounded bg-white shadow-sm" style={{ marginLeft: level * 16 }}>
             <div className="flex items-center justify-between p-2 cursor-pointer select-none" onClick={() => setExpanded((v) => !v)}>
                 <div className="flex items-center space-x-2">
-                    <IconComponent className="h-5 w-5 text-primary-foreground" />
+                    <IconComponent className="h-5 w-5 text-black" />
                     <span className="font-semibold">{node.name}</span>
                     <span className="text-xs text-muted-foreground">({node.slug})</span>
                     {node.router && <span className="ml-2 text-sm font-mono text-gray-400">{node.router}</span>}
