@@ -203,11 +203,24 @@ const PermissionEditor = () => {
     nodeSlug: string,
     actionCode: string
   ): PermissionNode[] => {
-    return nodes.map((node) => {
+    if (actionCode === "deleteGroup") {
+      return nodes.filter(node => node.id !== nodeSlug && node.slug !== nodeSlug)
+        .map(node => {
+          if (node.children) {
+            return {
+              ...node,
+              children: removeActionFromNode(node.children, nodeSlug, actionCode)
+            };
+          }
+          return node;
+        });
+    }
+
+    return nodes.map(node => {
       if (node.id === nodeSlug || node.slug === nodeSlug) {
         return {
           ...node,
-          actions: node.actions.filter((a) => a.code !== actionCode),
+          actions: node.actions.filter(a => a.code !== actionCode),
         };
       }
       if (node.children) {

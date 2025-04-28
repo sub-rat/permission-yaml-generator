@@ -16,10 +16,12 @@ function EditGroupDialog({
     group,
     onSave,
     onClose,
+    onRemoveAction
 }: {
     group: PermissionNode;
     onSave: (updatedGroup: PermissionNode) => void;
     onClose: () => void;
+    onRemoveAction: (nodeSlug: string, actionCode: string) => void;
 }) {
     const [name, setName] = useState(group.name);
     const [slug, setSlug] = useState(group.slug ?? group.id);
@@ -74,16 +76,6 @@ function EditGroupDialog({
                     value={component}
                     onChange={(e) => setComponent(e.target.value)}
                 />
-                {/* <select
-                    value={icon}
-                    onChange={(e) => setIcon(e.target.value as PermissionNode["icon"])}
-                    className="w-full rounded border border-gray-300 p-1"
-                    aria-label="Select Icon"
-                >
-                    <option value="CreditCard">CreditCard</option>
-                    <option value="Zap">Zap</option>
-                    <option value="Home">Home</option>
-                </select> */}
                 <Select
                     options={iconSelectOptions}
                     formatOptionLabel={formatOptionLabel}
@@ -102,6 +94,19 @@ function EditGroupDialog({
                     size="sm"
                 >
                     Save Changes
+                </Button>
+                <Button
+                    onClick={() => {
+                        const identifier = group.slug ?? group.id
+
+                        onRemoveAction(identifier, "deleteGroup")
+                    }}
+                    disabled={!name.trim() || !slug.trim()}
+                    className="ml-2"
+                    size="sm"
+                    variant="destructive"
+                >
+                    Delete
                 </Button>
             </DialogFooter>
         </DialogContent>

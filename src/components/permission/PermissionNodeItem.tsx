@@ -200,6 +200,7 @@ function PermissionNodeItem({
                     group={node}
                     onSave={handleEditNodeSave}
                     onClose={() => setEditNodeOpen(false)}
+                    onRemoveAction={onRemoveAction}
                 />
             </Dialog>
             {editActionOpenCode && (
