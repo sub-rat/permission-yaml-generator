@@ -33,13 +33,14 @@ const PermissionEditor = () => {
   const [permissions, setPermissions] = useState<PermissionNode[]>([])
   const [yamlInput, setYamlInput] = useState<string>("")
   const [matchingWords, setMatchingWords] = useState<string[]>([])
-  const [dropdownPosition, setDropdownPosition] = useState({ 
-    top: 0, 
-    left: 0, 
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
     visible: true,
     visibilityChangeReason: 'scroll'
-   })
+  })
   const [suggestionsList, setSuggestionsList] = useState<string[]>([])
+  const [selectedSuggestionsIndex, setSelectedOptionsIndex] = useState(0)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const mirrorRef = useRef<HTMLDivElement>(null)
@@ -316,12 +317,13 @@ const PermissionEditor = () => {
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     });
 
-    // setDropdownPosition((prev) => ({
-    //   ...prev,
-    //   visible: false,
-    // }));
+    setDropdownPosition((prev) => ({
+      ...prev,
+      visible: false,
+      visibilityChangeReason: 'replaceWord'
+    }));
 
-    setMatchingWords([])
+    setSelectedOptionsIndex(0)
   };
 
   const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
@@ -344,7 +346,7 @@ const PermissionEditor = () => {
     const textarea = textareaRef.current;
     const mirror = mirrorRef.current;
 
-    if(dropdownPosition.visibilityChangeReason != 'escape') {
+    if (dropdownPosition.visibilityChangeReason != 'escape') {
       setDropdownPosition(prev => ({
         ...prev,
         visible: true,
@@ -402,12 +404,34 @@ const PermissionEditor = () => {
               value={yamlInput}
               onChange={(e) => setYamlInput(e.target.value)}
               onKeyDown={(e) => {
+                const selectedOptionsLimit = matchingWords.length >= 10 ? 9 : matchingWords.length - 1
+
                 if (e.key == "Escape") {
                   setDropdownPosition(prev => ({
                     ...prev,
                     visible: !prev.visible,
                     visibilityChangeReason: 'escape'
                   }))
+                }
+                else if (dropdownPosition.visible) {
+                  if (e.key == "ArrowDown") {
+                    e.stopPropagation()
+                    e.preventDefault()
+
+                    if (selectedSuggestionsIndex < selectedOptionsLimit) setSelectedOptionsIndex(prev => prev + 1)
+                  }
+                  else if (e.key == "ArrowUp") {
+                    e.stopPropagation()
+                    e.preventDefault()
+
+                    if (selectedSuggestionsIndex > 0) setSelectedOptionsIndex(prev => prev - 1)
+                  }
+                  else if (e.key == "Enter") {
+                    e.stopPropagation()
+                    e.preventDefault()
+
+                    replaceCurrentWord(matchingWords[selectedSuggestionsIndex])
+                  }
                 }
               }}
               onScroll={() => {
@@ -440,14 +464,14 @@ const PermissionEditor = () => {
               dropdownPosition.visible && matchingWords.length > 0 && (
                 <div
                   className="border absolute z-50 rounded-sm bg-white right-2 top-2"
-                  // style={{
-                    // top: dropdownPosition.top,
-                    // left: dropdownPosition.left,
-                  // }}
+                // style={{
+                //   top: dropdownPosition.top,
+                //   left: dropdownPosition.left,
+                // }}
                 >
                   {matchingWords.slice(0, 10).map((word, index) => (
                     <div
-                      className="px-4 py-1.5 border hover:bg-slate-50 cursor-pointer"
+                      className={`px-4 py-1.5 border hover:bg-slate-200 cursor-pointer ${index == selectedSuggestionsIndex ? 'bg-slate-200' : ""}`}
                       key={index}
                       onClick={() => {
                         replaceCurrentWord(word)
