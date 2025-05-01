@@ -15,13 +15,16 @@ export const login = async ({ identity, password }: Login): Promise<LoginRespons
 
         if (!res.ok) {
             return {
-                data: null,
+                data: { user: null }, // Default valid data structure
                 message: "Invalid login credentials"
             }
         }
 
         return res.json()
     } catch {
-        return null
+        return {
+            data: { user: null }, // Default valid data structure
+            message: "An unexpected error occurred"
+        }
     }
 }
