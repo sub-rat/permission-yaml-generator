@@ -1,47 +1,11 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { CreditCard, Zap, Home } from "lucide-react"; // use Zap instead of Lightning
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
-
-export type ApiResource = {
-  method: string;
-  path: string;
-  attribute?: string;
-};
-
-export type PermissionAction = {
-  code: string;
-  name: string;
-  resources: ApiResource[];
-};
-
-export type PermissionChild = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home"; // use Zap
-  router: string;
-  component: string;
-  sequence: number;
-  actions: PermissionAction[];
-};
-
-export type PermissionGroup = {
-  name: string;
-  slug: string;
-  icon: "CreditCard" | "Zap" | "Home"; // use Zap
-  sequence: number;
-  actions?: PermissionAction[];
-  children?: PermissionChild[];
-};
+import { PermissionGroup, PermissionChild } from "@/lib/types/allTypes";
+import PermissionActionItem from "./PermissionActionItem";
 
 const iconMap = {
   CreditCard: CreditCard,
@@ -58,53 +22,6 @@ interface PermissionGroupProps {
     enabled: boolean
   ) => void;
   selectedActions?: Set<string>;
-}
-
-function PermissionActionItem({
-  action,
-  groupSlug,
-  onToggle,
-  selectedActions,
-}: {
-  action: PermissionAction;
-  groupSlug: string;
-  onToggle?: (
-    groupSlug: string,
-    actionCode: string,
-    enabled: boolean
-  ) => void;
-  selectedActions?: Set<string>;
-}) {
-  const isChecked = selectedActions?.has(`${groupSlug}:${action.code}`);
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Checkbox
-            id={`${groupSlug}-action-${action.code}`}
-            checked={isChecked}
-            onCheckedChange={(checked) =>
-              onToggle?.(groupSlug, action.code, Boolean(checked))
-            }
-          />
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <p>{action.name}</p>
-          <p className="text-xs text-muted-foreground">
-            {action.resources.length} resource
-            {action.resources.length !== 1 ? "s" : ""}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-      <label
-        htmlFor={`${groupSlug}-action-${action.code}`}
-        className="ml-2 select-none cursor-pointer"
-      >
-        {action.code}
-      </label>
-    </TooltipProvider>
-  );
 }
 
 export function PermissionGroupComponent({

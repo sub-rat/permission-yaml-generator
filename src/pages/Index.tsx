@@ -1,26 +1,58 @@
 
-// Fix imports: use named imports for UI components instead of a grouped import that does not exist
+import { FormProvider, useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
-import React from "react";
-import { Link } from "react-router-dom";
+import { Login } from "@/lib/types/Login";
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
+import { Card } from "../components/ui/card"
+import { Input } from "@/components/ui/input";
+import { login } from "@/lib/api/login";
 
 const Index = () => {
+  const navigate = useNavigate()
+  const methods = useForm<Login>()
+
+  const handleLogin = async (formData: Login) => {
+    const loginRes = await login(formData)
+
+    if (loginRes.data.access_token) {
+      localStorage.setItem('accessToken', loginRes.data.access_token)
+
+      navigate('/permissions')
+    }
+  }
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
-      <Card className="max-w-lg w-full p-6 text-center shadow-md">
-        <CardContent>
-          <h1 className="text-4xl font-bold mb-4">Welcome to Permission Manager</h1>
-          <p className="text-gray-700 mb-6">
-            Manage users, roles, and permissions with ease.
-          </p>
-          <Button asChild>
-            <Link to="/permissions">Go to Permission Editor</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <FormProvider {...methods}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center bg-slate-700 p-6">
+        <Card
+          className="max-w-lg w-full p-6 text-center shadow-md">
+          <h1
+            className="text-4xl font-bold mb-4"
+          >Welcome to Permission Manager</h1>
+          <form onSubmit={methods.handleSubmit(handleLogin)}>
+            <Input
+              {...methods.register('identity')}
+              className="mb-4"
+              placeholder="Username"
+              type="text"
+              required
+            />
+            <Input
+              {...methods.register('password')}
+              className="mb-4"
+              placeholder="Password"
+              type="password"
+              required
+            />
+            <Button type="submit">
+              Login
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </FormProvider>
   );
 };
 
