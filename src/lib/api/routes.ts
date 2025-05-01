@@ -13,13 +13,16 @@ export const getRoutes = async (): Promise<RoutesResponse | null> => {
 
         if (!res.ok) {
             return {
-                data: null,
+                data: [],
                 message: messages.MALFORMED_AUTH
             }
         }
 
         return res.json()
     } catch {
-        return null
+        return {
+            data: [],
+            message: messages.GENERIC_ERROR
+        }
     }
 }
