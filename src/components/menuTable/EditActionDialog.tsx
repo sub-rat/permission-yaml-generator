@@ -77,8 +77,16 @@ function EditActionDialog({
   
     React.useEffect(() => {
       getRoutes().then(res => {
-        setSelectedResources(res.data)
-      })
+        if (res && Array.isArray(res.data)) {
+          setSelectedResources(res.data);
+        } else {
+          console.error("Invalid response from getRoutes:", res);
+          setSelectedResources([]); // Set a default empty array if the response is invalid
+        }
+      }).catch(error => {
+        console.error("Error fetching routes:", error);
+        setSelectedResources([]); // Handle fetch error by setting an empty array
+      });
     }, [])
   
     return (
